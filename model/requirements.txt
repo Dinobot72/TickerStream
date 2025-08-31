@@ -1,0 +1,2 @@
+# File: trading_bot/requirements.txt
+requests==2.32.3
