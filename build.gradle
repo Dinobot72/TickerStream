@@ -1,0 +1,10 @@
+// build.gradle (root)
+plugins {
+    id 'base'
+}
+
+
+task buildAll {
+    dependsOn ':frontend:ngBuild' // Or ':backend:war'
+}
+

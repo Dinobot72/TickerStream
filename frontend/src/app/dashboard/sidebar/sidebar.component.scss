@@ -1,0 +1,12 @@
+.sidebar-container {
+    display: flex; /* flex */
+    width: 16rem; /* w-64 */
+    background-color: #1a202c; /* bg-gray-900 */
+    padding: 1.5rem; /* p-6 */
+    flex-direction: column; /* flex-col */
+    height:100vh;
+    border-top-right-radius: 1.5rem; /* rounded-tr-3xl */
+    border-bottom-right-radius: 1.5rem; /* rounded-br-3xl */
+
+    
+}
