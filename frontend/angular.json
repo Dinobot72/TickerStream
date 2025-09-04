@@ -36,7 +36,10 @@
             "outputMode": "server",
             "ssr": {
               "entry": "src/server.ts"
-            }
+            },
+            "scripts": [
+              "node_modules/zone.js/fesm2015/zone.js"
+            ]
           },
           "configurations": {
             "production": {
