@@ -1,25 +1,25 @@
 <main class="main-content">
 <!-- Top Bar -->
-<header class="flex justify-between items-center pb-6">
+<header class="top-bar">
     <h1 class="text-3xl font-bold text-gray-100">Dashboard</h1>
     <div class="flex items-center space-x-4">
     <div class="relative">
         <input
         type="text"
         placeholder="Search stocks..."
-        class="bg-gray-800 text-gray-300 rounded-full py-2 px-4 pl-10 focus:outline-none focus:ring-2 focus:ring-green-500"
+        class="search-input"
         />
-        <svg class="w-5 h-5 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" fill="currentColor" viewBox="0 0 20 20">
+        <svg class="search-icon" fill="currentColor" viewBox="0 0 20 20">
         <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"></path>
         </svg>
     </div>
-    <button class="text-gray-400 hover:text-white transition-colors duration-200 focus:outline-none">
+    <button class="icon-button">
         <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
         <path d="M10 2a8 8 0 100 16 8 8 0 000-16zM6.5 9a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM10 12.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5zM13.5 9a1.5 1.5 0 100 3 1.5 1.5 0 000-3z" clip-rule="evenodd"></path>
         </svg>
     </button>
     <div class="flex items-center space-x-2">
-        <img class="w-8 h-8 rounded-full" src="https://placehold.co/100x100/2f534f/ffffff?text=U" alt="User Avatar">
+        <img class="user-avatar" src="https://placehold.co/100x100/2f534f/ffffff?text=U" alt="User Avatar">
         <span class="text-sm font-medium text-gray-300">Alex</span>
     </div>
     </div>
