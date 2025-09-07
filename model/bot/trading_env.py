@@ -45,7 +45,7 @@ class TradingEnv(gym.Env):
     
     def step(self, action):
         self.current_step += 1
-        if self.current_step > self.max_steps:
+        if self.current_step >= self.max_steps:
             terminated = True
             info = {}
             return self._get_observation(), 0, terminated, False, info
