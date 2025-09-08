@@ -1,2 +1,6 @@
-# File: trading_bot/requirements.txt
-requests==2.32.3
+# model/requirements.txt
+gymnasium
+stable-baselines3[extra]
+yfinance
+pandas
+numpy
