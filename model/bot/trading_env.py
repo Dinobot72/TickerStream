@@ -8,7 +8,7 @@ class TradingEnv(gym.Env):
         super().__init__()
         self.df = df
         self.current_step = 0
-        self.initial_balance = 1000
+        self.initial_balance = 10000
         self.balance = self.initial_balance
         self.shares_held = 0
         self.net_worth = self.initial_balance
@@ -49,6 +49,7 @@ class TradingEnv(gym.Env):
         self.current_step += 1
         if self.current_step >= self.max_steps:
             terminated = True
+            print(f"net worth: ${self.net_worth:,.2f}\nbalance: ${self.balance:,.2f}\nshares: {self.shares_held:,.2f}\n")
             info = {'net_worth': self.net_worth, 'shares_held': self.shares_held}
             return self._get_observation(), 0, terminated, False, info
         

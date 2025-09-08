@@ -41,7 +41,7 @@ env = Monitor(env)
 
 # Create and train the PPO model
 model = PPO('MlpPolicy', env, verbose=1)
-model.learn(total_timesteps=25000)
+model.learn(total_timesteps=50000)
 if (input("do you want to save this model? y/n: ").upper() =="Y"):
     model.save("./model/ppo_trading_bot")
     print("Training complete. Model saved.")
