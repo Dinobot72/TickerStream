@@ -1,6 +1,7 @@
 # train_model.py
 import pandas as pd
 from stable_baselines3 import PPO
+from stable_baselines3.common.monitor import Monitor
 from bot.trading_env import TradingEnv
 
 # Corrected file path
@@ -36,9 +37,14 @@ print(df.head())
 # Initialize the environment
 env = TradingEnv(df)
 
+env = Monitor(env)
+
 # Create and train the PPO model
 model = PPO('MlpPolicy', env, verbose=1)
 model.learn(total_timesteps=25000)
-model.save("ppo_trading_bot")
+if (input("do you want to save this model? y/n: ").upper() =="Y"):
+    model.save("./model/ppo_trading_bot")
+    print("Training complete. Model saved.")
 
-print("Training complete. Model saved.")
+else:
+    print("Model not saved.")

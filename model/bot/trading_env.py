@@ -32,7 +32,9 @@ class TradingEnv(gym.Env):
     
     def _get_observation(self):
         # A simple observation for demonstration
-        row = self.df.iloc[self.current_step]
+        obs_step = min(self.current_step, self.max_steps)
+
+        row = self.df.iloc[obs_step]
         observation = [
             self.balance,
             self.shares_held,
@@ -47,7 +49,7 @@ class TradingEnv(gym.Env):
         self.current_step += 1
         if self.current_step >= self.max_steps:
             terminated = True
-            info = {}
+            info = {'net_worth': self.net_worth, 'shares_held': self.shares_held}
             return self._get_observation(), 0, terminated, False, info
         
         current_price = self.df.iloc[self.current_step]['Close']
@@ -70,5 +72,5 @@ class TradingEnv(gym.Env):
         self.net_worth = new_net_worth
 
         terminated = False
-        info = {}
+        info = {'net_worth': self.net_worth}
         return self._get_observation(), reward, terminated, False, info 
