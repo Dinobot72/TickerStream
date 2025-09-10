@@ -14,6 +14,7 @@ import { HttpClient } from '@angular/common/http';
     templateUrl: './main-content.component.html',
     styleUrls: ['./main-content.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
+
 })
 export class MainContentComponent implements OnInit {
 
@@ -38,9 +39,16 @@ export class MainContentComponent implements OnInit {
     }
 
     fetchPortfolio(): void {
-        this.http.get<any>('http://localhost:8000/api/portfolio').subscribe(data => {
+        const userId = 'test_user';
+
+        this.http.get<any>(`${this.apiUrl}/api/portfolio/${userId}`).subscribe({
+            next: (data) => {
+                console.log('Recieved portfolio data:', data)
             this.portfolioValue.set(data.currentValue);
             this.previousCloseValue.set(data.previousClose);
-        })
+        },
+        error: (err) => {
+            console.error('Failed to fetch portfolio', err);
+        }})
     }
 }

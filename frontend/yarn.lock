@@ -203,7 +203,7 @@
 
 "@angular/cdk@^20.2.2":
   version "20.2.2"
-  resolved "https://registry.yarnpkg.com/@angular/cdk/-/cdk-20.2.2.tgz#9015cb37f466982fea5f0077ab57b6ab620f3638"
+  resolved "https://registry.npmjs.org/@angular/cdk/-/cdk-20.2.2.tgz"
   integrity sha512-jLvIMmFI8zoi6vAu1Aszua59GmhqBOtsVfkwLUGg5Hi86DI/inJr9BznNX2EKDtaulYMGZCmDgsltXQXeqP5Lg==
   dependencies:
     parse5 "^8.0.0"
@@ -3371,6 +3371,11 @@ node-addon-api@^7.0.0:
   resolved "https://registry.npmjs.org/node-addon-api/-/node-addon-api-7.1.1.tgz"
   integrity sha512-5m3bsyrjFWE1xf7nz7YXdN4udnVtXK6/Yfgn5qnahL6bCkf2yKt4k3nuTKAtT4r3IG8JNR2ncsIMdZuAzJjHQQ==
 
+node-bin-setup@^1.0.0:
+  version "1.1.4"
+  resolved "https://registry.npmjs.org/node-bin-setup/-/node-bin-setup-1.1.4.tgz"
+  integrity sha512-vWNHOne0ZUavArqPP5LJta50+S8R261Fr5SvGul37HbEDcowvLjwdvd0ZeSr0r2lTSrPxl6okq9QUw8BFGiAxA==
+
 node-gyp-build-optional-packages@5.2.2:
   version "5.2.2"
   resolved "https://registry.npmjs.org/node-gyp-build-optional-packages/-/node-gyp-build-optional-packages-5.2.2.tgz"
@@ -3398,6 +3403,13 @@ node-releases@^2.0.19:
   version "2.0.19"
   resolved "https://registry.npmjs.org/node-releases/-/node-releases-2.0.19.tgz"
   integrity sha512-xxOWJsBKtzAq7DY0J+DTzuz58K8e7sJbdgwkbMWQe8UYB6ekmsQ45q0M/tJDsGaZmbC+l7n57UV8Hl5tHxO9uw==
+
+node@^20.19.5:
+  version "20.19.5"
+  resolved "https://registry.npmjs.org/node/-/node-20.19.5.tgz"
+  integrity sha512-9fJOHEP8AVrwpbhlUxnbudW8IbkseQVxl4yNQyI/rDfP+gNwKEmfPtBc/Luyf677i5Y0HKIBHiApiB9S9vvxKw==
+  dependencies:
+    node-bin-setup "^1.0.0"
 
 nopt@^8.0.0:
   version "8.1.0"
