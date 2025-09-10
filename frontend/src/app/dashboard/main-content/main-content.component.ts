@@ -1,8 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, signal, OnInit } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, signal, OnInit, Injectable } from '@angular/core'
 import { MatGridListModule } from '@angular/material/grid-list';
 import { HttpClient } from '@angular/common/http';
 
+@Injectable({providedIn: 'root'})
 
 @Component({
     selector: 'main-content',
@@ -11,6 +12,7 @@ import { HttpClient } from '@angular/common/http';
         CommonModule,
         MatGridListModule,
     ],
+    providers:[HttpClient],
     templateUrl: './main-content.component.html',
     styleUrls: ['./main-content.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
