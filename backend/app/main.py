@@ -42,7 +42,12 @@ def on_startup():
 
 @app.get("/")
 def read_root():
-    return {"message": "Hello from the Backend!\n"}
+    return {
+        "message": "Hello from the Backend!\n",
+        "stock": get_stock_chart('AAPL'),
+        "metrics": get_metrics('AAPL'),
+        "portfolio": get_portfolio("temp_user") ,
+    }
 
 @app.get("/api/stock/{ticker}")
 def get_stock_chart(ticker: str):
@@ -57,9 +62,28 @@ def get_portfolio(user_id: str):
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT ticker, quantity, purchase_price FROM portfolio WHERE user_id=?", (user_id,))
-    portfolio = [dict(row) for row in cursor.fetchall()]
+    holdings = [dict(row) for row in cursor.fetchall()]
     conn.close()
-    return portfolio
+
+    current_value = 0.0
+    previous_close_value = 0.0
+
+    for holding in holdings:
+        ticker = holding["ticker"]
+        quantity = holding["quantity"]
+        purchase_price = holding["purchase_price"]
+
+        stock_data = get_stock_data(ticker)
+
+        if stock_data and "latestPrice" in stock_data:
+            current_price = stock_data["latestPrice"]
+            current_value = quantity * current_price
+            previous_close_value = quantity * purchase_price
+        else: 
+            current_value = quantity * purchase_price
+            previous_close_value = quantity * purchase_price
+
+    return {"currentValue": current_value, "previousClose": previous_close_value}
 
 @app.post("/api/trade/")
 def record_trade(trade: Trade):
