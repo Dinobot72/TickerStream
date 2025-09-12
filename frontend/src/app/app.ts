@@ -9,7 +9,6 @@ import { HttpClient } from '@angular/common/http'
     RouterOutlet,
     DashboardComponent,
   ],
-  providers: [HttpClient],
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })

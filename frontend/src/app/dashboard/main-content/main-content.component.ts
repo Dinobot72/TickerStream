@@ -11,8 +11,8 @@ import { HttpClient } from '@angular/common/http';
     imports: [
         CommonModule,
         MatGridListModule,
+
     ],
-    providers:[HttpClient],
     templateUrl: './main-content.component.html',
     styleUrls: ['./main-content.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
