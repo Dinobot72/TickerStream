@@ -11,6 +11,7 @@ bootstrapApplication(App, {
       MatGridListModule,
       HttpClient,
     ),
+    provideHttpClient(),
   ],
 })
   .catch((err) => console.error(err));
