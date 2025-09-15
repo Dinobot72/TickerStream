@@ -38,10 +38,10 @@ def get_stock_metrics(ticker: str):
         stock = yf.Ticker(ticker)
         info = stock.info
         metrics = {
-            "market_cap": info.get('marketCap'),
-            "pe_ratio": info.get('trailingPE'),
-            "dividend_yield": info.get('dividendYield'),
-            "volume": info.get('volume'),
+            "market_cap": f"{info.get('marketCap'):,.2f}",
+            "pe_ratio": f"{info.get('trailingPE'):,.2f}",
+            "dividend_yield": f"{info.get('dividendYield'):,}",
+            "volume": f"{info.get('volume'):,.2f}",
             "52_week_high": info.get('fiftyTwoWeekHigh'),
             "52_week_low": info.get('fiftyTwoWeekLow'),
         }
