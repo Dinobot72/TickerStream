@@ -91,7 +91,7 @@ def record_trade(trade: Trade):
     cursor = conn.cursor()
 
     if trade.action == "BUY":
-        cursor.execute("EXECUTE OR REPLACE INTO portfolio (user_id, ticker, quantity, purchase_price) VALUES (?, ?, ?, ?)",
+        cursor.execute("INSERT OR REPLACE INTO portfolio (user_id, ticker, quantity, purchase_price) VALUES (?, ?, ?, ?)",
                        {"test_user", trade.ticker.upper(), trade.quantity, trade.price})
         
     conn.commit()
