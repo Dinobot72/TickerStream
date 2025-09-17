@@ -3,12 +3,17 @@ import pandas as pd
 from stable_baselines3 import PPO
 from stable_baselines3.common.monitor import Monitor
 from bot.trading_env import TradingEnv
+from model.callbacks import TrainingCallback
 
-# Corrected file path
+# File Path
 DATA_FILE = './model/data/AAPL_historical_data.csv'
-print(f"Attempting to load data from {DATA_FILE}")
+TENSORBOARD_LOG_DIR = "./tensorboard_logs/"
 
-# Load the historical data from the CSV file
+# Define training date Range
+TRAIN_START_DATE = "2020-01-01"
+TRAIN_END_DATE = "2022-12-31"
+
+# Data Preperation
 df = pd.read_csv(DATA_FILE, header=None)
 
 # The correct column names are on the very first row
@@ -37,11 +42,17 @@ print(df.head())
 # Initialize the environment
 env = TradingEnv(df)
 
-env = Monitor(env)
+# env = Monitor(env)
+
+training_callback = TrainingCallback(1000)
 
 # Create and train the PPO model
-model = PPO('MlpPolicy', env, verbose=1)
-model.learn(total_timesteps=25000)
+model = PPO('MlpPolicy', env, verbose=0, tensorboard_log=TENSORBOARD_LOG_DIR)
+
+
+model.learn(total_timesteps=25000, callback=training_callback, tb_log_name="ppo_stock_trader")
+
+
 if (input("do you want to save this model? y/n: ").upper() =="Y"):
     model.save("./model/ppo_trading_bot")
     print("Training complete. Model saved.")
