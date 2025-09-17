@@ -8,12 +8,20 @@ class TrainingCallback(BaseCallback):
         super( TrainingCallback, self ).__init__( verbose )
         self.log_freq = log_freq
 
-    def _on_step( self ):
-        #
+    def _on_step( self ) -> bool:
         if self.n_calls % self.log_freq == 0:
-            if len( self.model.ep_info_buffer ) > 0:
+            if len(self.model.ep_info_buffer) > 0:
                 mean_reward = np.mean([ep_info['r'] for ep_info in self.model.ep_info_buffer])
                 mean_length = np.mean([ep_info['l'] for ep_info in self.model.ep_info_buffer])
-
                 print(f"Step: {self.num_timesteps:<10} | Mean Reward: {mean_reward:<8.2f} | Mean Ep Length: {mean_length:<8.0f}")
+
+        # ✅ Grab portfolio info from `infos`
+        infos = self.locals.get("infos", None)
+        if infos is not None and len(infos) > 0:
+            snap = infos[0].get("portfolio_snapshot", None)
+            if snap:
+                self.logger.record("portfolio/net_worth", snap["net_worth"])
+                self.logger.record("portfolio/balance", snap["balance"])
+                self.logger.record("portfolio/shares_held", snap["shares_held"])
+
         return True
