@@ -47,9 +47,16 @@ class TradingEnv(gym.Env):
     
     def step(self, action):
         self.current_step += 1
+        info = {}
+
         if self.current_step >= self.max_steps:
             terminated = True
-            info = {'net_worth': self.net_worth, 'shares_held': self.shares_held}
+            info['portfolio_snapshot'] = {
+                'step': self.current_step,
+                'net_worth': self.net_worth,
+                'balance': self.balance,
+                'shares_held': self.shares_held
+            }
             return self._get_observation(), 0, terminated, False, info
         
         current_price = self.df.iloc[self.current_step]['Close']
@@ -71,8 +78,14 @@ class TradingEnv(gym.Env):
         reward = new_net_worth - self.net_worth
         self.net_worth = new_net_worth
 
+        obs = self._get_observation()
+
+
         terminated = False
-        info = {'net_worth': self.net_worth,
-                'balance': self.balance,
-                'shares_held': self.shares_held}
-        return self._get_observation(), reward, terminated, False, info 
+        info['portfolio_snapshot'] = {
+            'step': self.current_step,
+            'net_worth': self.net_worth,
+            'balance': self.balance,
+            'shares_held': self.shares_held
+            }
+        return obs, reward, terminated, False, info 
