@@ -72,5 +72,7 @@ class TradingEnv(gym.Env):
         self.net_worth = new_net_worth
 
         terminated = False
-        info = {'net_worth': self.net_worth}
+        info = {'net_worth': self.net_worth,
+                'balance': self.balance,
+                'shares_held': self.shares_held}
         return self._get_observation(), reward, terminated, False, info 
