@@ -50,7 +50,7 @@ training_callback = TrainingCallback(1000)
 model = PPO('MlpPolicy', env, verbose=0, tensorboard_log=TENSORBOARD_LOG_DIR)
 
 
-model.learn(total_timesteps=25000, callback=training_callback, tb_log_name="ppo_stock_trader")
+model.learn(total_timesteps=50000, callback=training_callback, tb_log_name="ppo_stock_trader")
 
 
 if (input("do you want to save this model? y/n: ").upper() =="Y"):
