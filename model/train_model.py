@@ -3,7 +3,7 @@ import pandas as pd
 from stable_baselines3 import PPO
 from stable_baselines3.common.monitor import Monitor
 from bot.trading_env import TradingEnv
-from model.callbacks import TrainingCallback
+from callbacks import TrainingCallback
 
 # File Path
 DATA_FILE = './model/data/AAPL_historical_data.csv'
@@ -44,13 +44,13 @@ env = TradingEnv(df)
 
 # env = Monitor(env)
 
-training_callback = TrainingCallback(1000)
+training_callback = TrainingCallback(log_freq=365)
 
 # Create and train the PPO model
-model = PPO('MlpPolicy', env, verbose=0, tensorboard_log=TENSORBOARD_LOG_DIR)
+model = PPO('MlpPolicy', env, verbose=0, tensorboard_log=TENSORBOARD_LOG_DIR, learning_rate=0.004, device='cpu')
 
 
-model.learn(total_timesteps=50000, callback=training_callback, tb_log_name="ppo_stock_trader")
+model.learn(total_timesteps=100000, callback=training_callback, tb_log_name="ppo_stock_trader", progress_bar=True)
 
 
 if (input("do you want to save this model? y/n: ").upper() =="Y"):

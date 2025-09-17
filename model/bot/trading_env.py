@@ -8,7 +8,7 @@ class TradingEnv(gym.Env):
         super().__init__()
         self.df = df
         self.current_step = 0
-        self.initial_balance = 1000
+        self.initial_balance = 100000
         self.balance = self.initial_balance
         self.shares_held = 0
         self.net_worth = self.initial_balance
