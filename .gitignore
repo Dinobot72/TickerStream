@@ -1,3 +1,5 @@
 vrtenv/
 node/
 data/
+__pycache__/*
+**/tensorboard_logs/*
