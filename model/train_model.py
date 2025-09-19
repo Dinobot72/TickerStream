@@ -63,6 +63,10 @@ def data_setup(ticker):
 
 
 if __name__ == "__main__":
+    # TensorBoardUrl command
+    # tensorboard --logdir=./tensorboard_logs
+    # run and follow to the localhost
+
     for ticker in TICKER:
         # Data Preperation
         df = data_setup(ticker)

@@ -75,8 +75,9 @@ class TradingEnv(gym.Env):
 
         # Calculate new net worth and reward
         new_net_worth = self.balance + self.shares_held * current_price
-        reward = new_net_worth - self.net_worth
+        reward = (new_net_worth - self.net_worth + new_net_worth - 100000) / 2
         self.net_worth = new_net_worth
+        
 
         obs = self._get_observation()
 
