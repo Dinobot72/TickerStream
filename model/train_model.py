@@ -55,6 +55,9 @@ def data_setup(ticker):
     df = df.apply(pd.to_numeric, errors='coerce')
     df.dropna(inplace=True)
 
+    # Filter training date range
+    df = df[(df.index >= TRAIN_START_DATE) & (df.index <= TRAIN_END_DATE)]
+
     # Final check of the columns
     print("Final DataFrame columns:", df.columns)
     print("Final DataFrame head:")
@@ -86,7 +89,7 @@ if __name__ == "__main__":
             print('Loading Model')
             model = PPO.load("./model/ppo_training_bot")
 
-        model.learn(total_timesteps=100000, callback=training_callback, tb_log_name=f'ppo_stock_trader_{ticker}', progress_bar=True)
+        model.learn(total_timesteps=500000, callback=training_callback, tb_log_name=f'ppo_stock_trader_{ticker}', progress_bar=True)
 
         model.save("./model/ppo_trading_bot")
 
