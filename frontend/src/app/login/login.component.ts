@@ -20,6 +20,6 @@ import { MatInput } from '@angular/material/input';
     styleUrls: ['./login.component.scss'],
 })
 
-export class LoginClassComponent {
+export class LoginComponent {
     usernameFormControl = new FormControl('');
 }
