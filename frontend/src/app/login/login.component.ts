@@ -3,8 +3,8 @@ import {Component } from'@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatDividerModule } from '@angular/material/divider';
-import { MatFormField, MatLabel } from '@angular/material/form-field';
-import { MatInput } from '@angular/material/input';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 
 @Component({
     selector: 'login-page',
@@ -12,9 +12,9 @@ import { MatInput } from '@angular/material/input';
     imports: [
         MatCardModule,
         MatDividerModule,
-        MatFormField,
-        MatInput,
-        MatLabel,
+        MatFormFieldModule,
+        MatInputModule,
+        CommonModule,
     ],
     templateUrl: './login.component.html',
     styleUrls: ['./login.component.scss'],

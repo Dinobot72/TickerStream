@@ -304,10 +304,10 @@
   dependencies:
     tslib "^2.3.0"
 
-"@angular/ssr@^20.2.1":
-  version "20.2.1"
-  resolved "https://registry.npmjs.org/@angular/ssr/-/ssr-20.2.1.tgz"
-  integrity sha512-7bCfUwmgQJQPFuNRWd0mofIuwN3BK7JLpPEKYiIHd21Pd60xt+Dv8UnEwyixBL3ixhHsfzekDVaKPm2ar5/SFg==
+"@angular/ssr@^20.3.3":
+  version "20.3.3"
+  resolved "https://registry.yarnpkg.com/@angular/ssr/-/ssr-20.3.3.tgz#798b71ba30043717be2d6ad84baa62e158b8d3d5"
+  integrity sha512-DdwpwfNcoiaiaPvcm3aL+k24JWB0OOTq8/oM8HY4gAZbGNTnn8n1gTbTq3qjLt8zFtCWWqVU0+ejBgHIEvmDOw==
   dependencies:
     tslib "^2.3.0"
 
