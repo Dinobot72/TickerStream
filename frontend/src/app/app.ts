@@ -7,7 +7,7 @@ import { RouterOutlet } from '@angular/router';
     RouterOutlet,
   ],
   templateUrl: './app.html',
-  styleUrls: ['./app.scss'],
+  styleUrl: './app.scss'
 })
 export class App {
   protected readonly title = signal('stockBot');

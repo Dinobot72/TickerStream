@@ -43,13 +43,8 @@ export class MainContentComponent implements OnInit {
     constructor(private http: HttpClient) {}
 
     ngOnInit(): void {
-        try {
-            this.fetchPortfolio();
-            this.fetchMetrics();
-        }
-        catch (e) {
-            console.error("Crash in Main-Content:", e)
-        }
+        this.fetchPortfolio();
+        this.fetchMetrics();
     }
 
     fetchPortfolio(): void {
@@ -75,8 +70,7 @@ export class MainContentComponent implements OnInit {
             this.volume.set(data.volume)
             this.dividendYield.set(data.dividend_yield)
 
-            },
-            error: err => console.error("Error fetching:", err)
+            }
         })
     }
 }

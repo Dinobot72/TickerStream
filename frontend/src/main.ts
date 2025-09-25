@@ -18,10 +18,3 @@ bootstrapApplication(App, {
   ],
 })
   .catch((err) => console.error(err));
-  
-window.addEventListener("error", (event) => {
-  console.error("Global error:", event.error);
-});
-window.addEventListener("unhandledrejection", (event) => {
-  console.error("Unhandled Promise rejection:", event.reason);
-});
