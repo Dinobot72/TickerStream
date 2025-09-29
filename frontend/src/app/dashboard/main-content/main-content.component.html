@@ -19,8 +19,8 @@
         </svg>
     </button>
     <div class="flex items-center space-x-2">
-        <img class="user-avatar" src="https://placehold.co/100x100/2f534f/ffffff?text=U" alt="User Avatar">
-        <span class="text-sm font-medium text-gray-300">Alex</span>
+        <img class="user-avatar" [src]="'https://placehold.co/100x100/2f534f/ffffff?text=' + userName[0]" alt="User Avatar">
+        <span class="text-sm font-medium text-gray-300">{{ this.userName}}</span>
     </div>
     </div>
 </header>

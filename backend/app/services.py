@@ -1,23 +1,6 @@
 import yfinance as yf
-from datetime import datetime, timedelta
-import pandas as pd
 
 def get_stock_data(ticker: str):
-    # stock = yf.Ticker(ticker)
-
-    # hist_data = stock.history(period="7d", interval="1m")
-
-    # formatted_data = []
-    # for index, row in hist_data.iterrows():
-    #     formatted_data.append({
-    #         "timestamp": index.timestamp(),
-    #         "open": row['Open'],
-    #         "high": row['High'],
-    #         "low": row['Low'],
-    #         "close": row['Close'],
-    #         "volume": row['Volume']
-    #     })
-    # return formatted_data
     """
     Fetches historical stock data for the given ticker from Yahoo Finance.
     """
