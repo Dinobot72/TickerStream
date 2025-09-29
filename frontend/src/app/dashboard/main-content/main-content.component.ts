@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, signal, OnInit, Injectable } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, signal, OnInit, Injectable, Input } from '@angular/core';
 import { MatGridListModule } from '@angular/material/grid-list';
 import { HttpClient } from '@angular/common/http';
 
@@ -30,6 +30,8 @@ export class MainContentComponent implements OnInit {
     public volume = signal(0);
     public fiftyTwoWeekHigh = signal(0);
     public fiftyTwoWeekLow = signal(0);
+    @Input() userName: string = 'User';
+    
 
     portfolioPercentage = computed(() => {
         const target = 50000;
