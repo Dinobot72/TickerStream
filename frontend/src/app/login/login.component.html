@@ -1,29 +1,81 @@
-<mat-card class="">
-    <mat-card-header>
-        <mat-card-title> Login </mat-card-title>
-    </mat-card-header>
-    <mat-card-content>
-        <form>
-            <mat-form-field>
-                <mat-label> Username </mat-label>
-                <input
-                    type="text"
-                    placeholder="Enter your Username"
-                    aria-label="username"
-                    matInput
+<main class="login-container">
+    <mat-card class="login-card">
+        <mat-card-header>
+            <mat-card-title> Login </mat-card-title>
+        </mat-card-header>
+        <mat-card-content style="align-items: center;">
+            <form>
+                <mat-form-field>
+                    <mat-label> Username </mat-label>
+                    <input
+                        type="text"
+                        placeholder="Enter your Username"
+                        aria-label="username"
+                        [(ngModel)]="username"
+                        name="usernameInput"
+                        matInput
+                    >
+                </mat-form-field>
+            </form>
+            <form>
+                <mat-form-field>
+                    <mat-label> Password </mat-label>
+                    <input
+                        [type]="hide() ? 'password' : 'text'"
+                        placeholder="Enter your Password"
+                        aria-label="username"
+                        [(ngModel)]="password"
+                        name="passwordInput"
+                        matInput
+                    >
+                    <button
+                        matIconButton
+                        matSuffix
+                        (click)="clickEvent($event)"
+                        style="padding-right: 5px;"
+                    >
+                        <mat-icon >{{hide() ? 'visibility_off' : 'visibility'}}</mat-icon>
+                    </button>
+                </mat-form-field>
+            </form>
+            <form>
+                <mat-form-field>
+                    <mat-label> First Name </mat-label>
+                    <input
+                        type="text"
+                        placeholder="Enter your First Name"
+                        aria-label="firstName"
+                        [(ngModel)]="firstName"
+                        name="firstNameInput"
+                        matInput
+                    >
+                </mat-form-field>
+            </form>
+            <form>
+                <mat-form-field>
+                    <mat-label> Last Name </mat-label>
+                    <input
+                        type="text"
+                        placeholder="Enter your Last Name"
+                        aria-label="lastName"
+                        [(ngModel)]="lastName"
+                        name="lastNameInput"
+                        matInput
+                    >
+                </mat-form-field>
+            </form>
+            <div style="width: 100%; align-items: center;">
+                <button
+                    matButton="filled"
+                    (click)="register()"
                 >
-            </mat-form-field>
-        </form>
-        <form>
-            <mat-form-field>
-                <mat-label> Password </mat-label>
-                <input
-                    type="text"
-                    placeholder="Enter your Password"
-                    aria-label="username"
-                    matInput
-                >
-            </mat-form-field>
-        </form>
-    </mat-card-content>
-</mat-card>
+                    Login
+                </button>
+            </div>
+            <div>
+                <a>Not registered yet Register here</a>
+                <button></button>
+            </div>
+        </mat-card-content>
+    </mat-card>
+</main>

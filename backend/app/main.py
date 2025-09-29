@@ -5,6 +5,7 @@ from .database import get_db_connection, setup_database
 from .services import get_stock_data, get_stock_metrics
 import sys
 import os
+import sqlite3
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
@@ -17,10 +18,21 @@ class PortfolioState(BaseModel):
     shares_held: int
 
 class Trade(BaseModel):
+    user_id: int
     ticker: int
     action: str
     quantity: int
     price: float
+
+class User(BaseModel):
+    username: str
+    password: str
+    first_name: str
+    last_name: str
+
+class LoginCredentials( BaseModel ):
+    username: str
+    password: str
 
 app = FastAPI()
 
@@ -40,17 +52,54 @@ app.add_middleware(
 def on_startup():
     setup_database()
 
+@app.post("/api/register")
+def register_user( user: User):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("INSERT INTO users (username, password, first_name, last_name) VALUES (?, ?, ?, ?)",
+                       (user.username, user.password, user.first_name, user.last_name))
+        conn.commit()
+    except sqlite3.IntegrityError:
+        raise HTTPException(status_code=400, detail="Username already exists")
+    finally:
+        conn.close()
+    return {"mesage": "User registered succesfully"}
+
+@app.post("/api/login")
+def login_user( credentials: LoginCredentials ):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT user_id, password FROM users WHERE username = ?", (credentials.username,))
+    user = cursor.fetchone()
+    conn.close()
+    if user is None or not user["password"] == credentials.password:
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+    return {"message": "Login successful", "user_id": user["user_id"]}
+
+@app.get("/api/user/{user_id}")
+def get_user_info( user_id: int ):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT user_id, username, first_name, last_name FROM users WHERE user_id = ?", (user_id,))
+    user = cursor.fetchone()
+    conn.close()
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return dict(user)
+
+
 @app.get("/")
 def read_root():
     return {
         "message": "Hello from the Backend!\n",
         "stock": get_stock_chart('AAPL'),
         "metrics": get_metrics('AAPL'),
-        "portfolio": get_portfolio("temp_user") ,
+        "portfolio": get_portfolio("1") ,
     }
 
 @app.get("/api/stock/{ticker}")
-def get_stock_chart(ticker: str):
+def get_stock_chart( ticker: str ):
     return get_stock_data(ticker.upper())
 
 @app.get("/api/metrics/{ticker}")
@@ -92,7 +141,7 @@ def record_trade(trade: Trade):
 
     if trade.action == "BUY":
         cursor.execute("INSERT OR REPLACE INTO portfolio (user_id, ticker, quantity, purchase_price) VALUES (?, ?, ?, ?)",
-                       {"test_user", trade.ticker.upper(), trade.quantity, trade.price})
+                       {trade.user_id, trade.ticker.upper(), trade.quantity, trade.price})
         
     conn.commit()
     conn.close()
