@@ -1,17 +1,21 @@
 # File: backend/app/main.py
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
+from fastapi.security import OAuth2AuthorizationCodeBearer
 from fastapi.middleware.cors import CORSMiddleware
-from .database import get_db_connection, setup_database
-from .services import get_stock_data, get_stock_metrics
+from jose import JWTError, jwt
+from passlib.context import CryptContext
+from datetime import datetime, timedelta
+from pydantic import BaseModel
+from typing import List, Dict
 import sys
 import os
 import sqlite3
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
-
 from model.bot.strategy_engine import get_bot_decision
-from pydantic import BaseModel
-from typing import List, Dict
+
+from .database import get_db_connection, setup_database
+from .services import get_stock_data, get_stock_metrics
 
 class PortfolioState(BaseModel):
     balance: float
