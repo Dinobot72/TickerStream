@@ -18,7 +18,7 @@ from .database import get_db_connection, setup_database
 from .services import get_stock_data, get_stock_metrics
 
 # --- Security Configuration ---
-SECRET_KEY = "42qswyub43s5dytiu"
+SECRET_KEY = "604f4b0bb91cbf5d981f3152a0b2223eceaf22f18df22d1e7511a835da818a20"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
@@ -63,10 +63,10 @@ app.add_middleware(
 
 # --- JWT ---
 def verify_password( plain_password, hashed_password ):
-    return pwd_context.verify( plain_password, hashed_password )
+    return pwd_context.verify( plain_password[:72], hashed_password )
 
 def get_password_hash( password ):
-    return pwd_context.hash( password )
+    return pwd_context.hash( password[:72] )
 
 def create_access_token( data: dict ):
     to_encode = data.copy()
