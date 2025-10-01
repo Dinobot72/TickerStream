@@ -22,7 +22,7 @@ import { HttpClient, HttpClientModule } from '@angular/common/http';
     styleUrls: ['./dashboard.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class DashboardComponent implements OnInit{
+export class DashboardComponent {
     userName: string = 'user';
     private apiUrl = 'http:localhost:8000/api';
 
@@ -31,23 +31,5 @@ export class DashboardComponent implements OnInit{
     private http: HttpClient
   ) {}
 
-    ngOnInit(): void {
-    this.route.paramMap.subscribe(params => {
-      const userId = params.get('userId');
-      if (userId) {
-        this.fetchUserDetails(userId);
-      }
-    });
-  }
-
-  fetchUserDetails(userId: string): void {
-    this.http.get<any>(`${this.apiUrl}/user/${userId}`).subscribe({
-      next: (user) => {
-        this.userName = user.first_name;
-      },
-      error: (err) => {
-        console.error('Failed to fetch user details', err);
-      }
-    });
-  }
+    
 }
