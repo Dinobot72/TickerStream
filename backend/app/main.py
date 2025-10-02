@@ -194,8 +194,9 @@ def record_trade(trade: Trade):
 
     if trade.action == "BUY":
         cursor.execute("INSERT OR REPLACE INTO portfolio (user_id, ticker, quantity, purchase_price) VALUES (?, ?, ?, ?)",
-                       {trade.user_id, trade.ticker.upper(), trade.quantity, trade.price})
-        
+                       (trade.user_id, trade.ticker.upper(), trade.quantity, trade.price)
+        )
+
     conn.commit()
     conn.close()
     return {"mesage": "Trade recorded successfully."}

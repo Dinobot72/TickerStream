@@ -28,7 +28,7 @@ import { Router } from '@angular/router';
 })
 export class LoginComponent {
 
-    private apiUrl = 'http://localhost:8000'; 
+    private apiUrl = 'http://localhost:8000/api'; 
     private router = inject(Router);
 
     usernameFormControl = new FormControl('');
@@ -48,8 +48,28 @@ export class LoginComponent {
     }
 
     login() {
-        console.log('Logging in');
-        this.router.navigate(['/dashboard'])
+        const credentials = {
+            username: this.username,
+            password: this.password,
+        };
+
+        this.http.post(`${this.apiUrl}/login`, credentials)
+            .subscribe({
+                next: (response: any) => {
+                    console.log('Login Succesful', response)
+
+                    // Save token + user info (you’ll need this later for API calls)
+                    localStorage.setItem('token', response.access_token);
+                    localStorage.setItem('user_id', response.user_id);
+
+                    // Redirect after successful login
+                    this.router.navigate(['/dashboard']);
+                },
+                error: (err) => {
+                    console.error('Login failed', err);
+                    alert("Invalid username or password");
+                }
+            })
     }
 
     register() {
@@ -61,7 +81,7 @@ export class LoginComponent {
             last_name: this.lastName,
         };
 
-        this.http.post(`${this.apiUrl}/api/register`, user)
+        this.http.post(`${this.apiUrl}/register`, user)
             .subscribe({
                 next: (response) => {
                     console.log('Regestration succesful', response);
