@@ -102,3 +102,19 @@
         }
     }
 }
+
+.portfolio-summary-container {
+    margin-top: 5vh;
+    height: 100%;
+    width: 100%;
+    
+    .portfolio-summary-list {
+        height: 100%;
+        width: 100%;
+        padding: 2rem;
+        background-color: #1f2937;
+        justify-items: center;
+        justify-content: center;
+
+    }
+}

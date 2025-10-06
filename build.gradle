@@ -6,5 +6,6 @@ plugins {
 
 task buildAll {
     dependsOn ':frontend:ngBuild' // Or ':backend:war'
+    // uvicorn app.main:app --reload
 }
 
