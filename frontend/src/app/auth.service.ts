@@ -1,4 +1,5 @@
-import { Injectable, signal } from '@angular/core';
+import { Inject, Injectable, PLATFORM_ID, signal } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { tap } from 'rxjs/operators';
@@ -7,14 +8,26 @@ import { tap } from 'rxjs/operators';
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = 'http//:localhost:8000/api';
+  private apiUrl = 'http://localhost:8000/api';
   private readonly TOKEN_KEY = 'auth_token';
   private readonly USER_ID_KEY ='auth_user_id';
+  private isBrowser?: boolean;
 
-  isLoggedIn = signal<boolean>(this.hasToken());
-  currentUserId = signal<string | null>(this.getUserId());
+  isLoggedIn = signal<boolean>(false);
+  currentUserId = signal<string | null>(null);
 
-  constructor(private http: HttpClient, private router: Router) { }
+  constructor(
+    private http: HttpClient, 
+    private router: Router,
+    @Inject(PLATFORM_ID) private platformId: Object,
+  ) {
+    this.isBrowser = isPlatformBrowser(this.platformId);
+
+    if (this.isBrowser) {
+      this.isLoggedIn.set(this.hasToken());
+      this.currentUserId.set(this.getUserId());
+    }
+  }
 
   login(credentials: {username: string, password: string}) {
     return this.http.post<any>(`${this.apiUrl}/login`, credentials).pipe(
