@@ -1,5 +1,6 @@
 vrtenv/
 node/
+backend/stockBot.db
 data/
 __pycache__/*
 **/tensorboard_logs/*
