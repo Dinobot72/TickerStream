@@ -9,6 +9,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
+import { AuthService } from '../auth.service';
 
 @Component({
     selector: 'login-page',
@@ -30,6 +31,7 @@ export class LoginComponent {
 
     private apiUrl = 'http://localhost:8000/api'; 
     private router = inject(Router);
+    private authService = inject(AuthService);
 
     usernameFormControl = new FormControl('');
 
@@ -48,28 +50,17 @@ export class LoginComponent {
     }
 
     login() {
-        const credentials = {
-            username: this.username,
-            password: this.password,
-        };
-
-        this.http.post(`${this.apiUrl}/login`, credentials)
+        this.authService.login({ username: this.username, password: this.password })
             .subscribe({
-                next: (response: any) => {
-                    console.log('Login Succesful', response)
-
-                    // Save token + user info (you’ll need this later for API calls)
-                    localStorage.setItem('token', response.access_token);
-                    localStorage.setItem('user_id', response.user_id);
-
-                    // Redirect after successful login
-                    this.router.navigate(['/dashboard']);
+                next: (response) => {
+                    console.log('Login successful from component', response);
+                    // Navigation is now handled by the AuthService
                 },
                 error: (err) => {
                     console.error('Login failed', err);
                     alert("Invalid username or password");
                 }
-            })
+            });
     }
 
     register() {
