@@ -19,8 +19,8 @@
         </svg>
     </button>
     <div class="flex items-center space-x-2">
-        <img class="user-avatar" src="https://placehold.co/100x100/2f534f/ffffff?text=U" alt="User Avatar">
-        <span class="text-sm font-medium text-gray-300">Alex</span>
+        <img class="user-avatar" [src]="'https://placehold.co/100x100/2f534f/ffffff?text=' + userName[0]" alt="User Avatar">
+        <span class="text-sm font-medium text-gray-300">{{ this.userName}}</span>
     </div>
     </div>
 </header>
@@ -30,7 +30,7 @@
     <!-- The main chart card -->
     <div class="md:col-span-2 md:row-span-2 bg-gray-900 rounded-2xl p-6 shadow-lg">
     <div class="flex justify-between items-center mb-4">
-        <h2 class="text-xl font-semibold text-gray-100">Live Chart</h2>
+        <h2 class="text-xl font-semibold text-gray-100">Live Chart - {{ticker}}</h2>
         <div class="flex items-center space-x-2 text-sm text-gray-400">
         <span class="px-2 py-1 rounded-full bg-gray-800 cursor-pointer">1D</span>
         <span class="px-2 py-1 rounded-full bg-gray-800 cursor-pointer">1W</span>
@@ -58,8 +58,8 @@
         </div>
         <div>
             <div class="text-gray-400 text-sm">Current Value</div>
-            <div class="text-2xl font-bold text-gray-100">$5,234.50</div>
-            <div class="text-sm font-medium text-green-500">+2.5%</div>
+            <div class="text-2xl font-bold text-gray-100">${{portfolioValue()}}</div>
+            <div class="text-sm font-medium text-green-500">+{{portfolioPercentage()}}%</div>
         </div>
         </div>
     </div>
@@ -92,11 +92,12 @@
     <div class="bg-gray-900 rounded-2xl p-6 shadow-lg md:col-span-2">
     <h2 class="text-lg font-semibold text-gray-100 mb-2">Key Metrics</h2>
     <div class="grid grid-cols-2 gap-4 text-gray-400">
-        <div>Market Cap: <span class="text-gray-200 font-bold">$2.8T</span></div>
-        <div>P/E Ratio: <span class="text-gray-200 font-bold">28.5</span></div>
-        <div>Volume: <span class="text-gray-200 font-bold">1.5B</span></div>
-        <div>Dividend Yield: <span class="text-gray-200 font-bold">0.8%</span></div>
+        <div>Market Cap: <span class="text-gray-200 font-bold">${{marketCap()}}</span></div>
+        <div>P/E Ratio: <span class="text-gray-200 font-bold">{{peRatio()}}</span></div>
+        <div>Volume: <span class="text-gray-200 font-bold">{{volume()}}</span></div>
+        <div>Dividend Yield: <span class="text-gray-200 font-bold">{{dividendYield()}}%</span></div>
     </div>
     </div>
 </div>
+<button matButton height="30px" width="70px">Deposit</button>
 </main>

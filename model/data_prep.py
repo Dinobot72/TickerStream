@@ -28,9 +28,17 @@ def download_and_save_stock_data(ticker: str, start_date: str, end_date: str, ou
 if __name__ == "__main__":
     # --- Example Usage ---
     # Pick a stock and a time range
-    TICKER = 'AAPL'
+    TICKER = [
+        "AAPL", "MSFT", "AMZN", "GOOGL", "META",
+        "TSLA", "NVDA", "JPM", "V", "JNJ",
+        "WMT", "PG", "HD", "DIS", "BAC",
+        "PFE", "NFLX", "KO", "PEP", "CSCO",
+        "INTC", "XOM", "CVX", "ADBE", "NKE"
+        ]
     START_DATE = '2020-01-01'
     END_DATE = '2024-01-01'
-    OUTPUT_FILE = f'./model/data/{TICKER}_historical_data.csv'
+    for ticker in TICKER:
+        OUTPUT_FILE = f'./model/data/{ticker}_historical_data.csv'
+        download_and_save_stock_data(ticker, START_DATE, END_DATE, OUTPUT_FILE)
+
     
-    download_and_save_stock_data(TICKER, START_DATE, END_DATE, OUTPUT_FILE)
