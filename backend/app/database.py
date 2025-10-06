@@ -18,12 +18,32 @@ def setup_database():
         )
     ''')
     cursor.execute('''
-        CREATE TABLE IF NOT EXISTS portfolio (
+        CREATE TABLE IF NOT EXISTS portfolios (
+            user_id INTEGER PRIMARY KEY,
+            balance REAL NOT NULL DEFAULT 0.0,
+            FOREIGN KEY (user_id) REFERENCES users (user_id)
+        )
+    ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS holdings (
             user_id INTEGER NOT NULL,
             ticker TEXT NOT NULL,
             quantity INTEGER NOT NULL,
             purchase_price REAL NOT NULL,
             PRIMARY KEY (user_id, ticker),
+            FOREIGN KEY (user_id) REFERENCES users (user_id)
+        )
+    ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS trades (
+            trade_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            ticker TEXT NOT NULL,
+            action TEXT NOT NULL,
+            quantity INTEGER NOT NULL,
+            price REAL NOT NULL,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            is_bot_trade BOOLEAN DEFAULT FALSE,
             FOREIGN KEY (user_id) REFERENCES users (user_id)
         )
     ''')
