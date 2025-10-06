@@ -1,6 +1,6 @@
-# Stock-Bot 🤖
+# TickerStream AI 🤖
 
-**Stock-Bot** is a comprehensive, full-stack application that leverages a deep reinforcement learning model to perform automated stock trading. It features a Python-based backend with a machine learning model for decision-making, and a TypeScript-based frontend for user interaction.
+**TickerStream AI** is a comprehensive, full-stack application that leverages a deep reinforcement learning model to perform automated stock trading. It features a Python-based backend with a machine learning model for decision-making, and a TypeScript-based frontend for user interaction.
 
 ## ✨ Key Features
 
@@ -43,7 +43,7 @@
 
 1.  **Clone the repository:**
     ```bash
-    git clone [https://github.com/your-username/stock-bot.git](https://github.com/your-username/stock-bot.git)
+    git clone [https://github.com/your-username/stock-bot.git](https://github.com/your-username/TickerStream.git)
     cd stock-bot
     ```
 
