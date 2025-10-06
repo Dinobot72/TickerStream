@@ -2,9 +2,13 @@
 import pandas as pd
 import numpy as np
 from stable_baselines3 import PPO
+import os
 
-MODEL_PATH = "model/ppo_trading_bot.zip"
-DATA_FILE = "model/data/AAPL_historical_data.csv"
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
+MODEL_PATH = os.path.join(current_dir, '..', '..', 'model', 'ppo_trading_bot.zip')
+DATA_FILE = os.path.join(current_dir, '..', '..', 'model', 'data', 'AAPL_historical_data.csv')
+
 
 try:
     model = PPO.load(MODEL_PATH)
