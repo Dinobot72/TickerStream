@@ -1,0 +1,116 @@
+<main class="login-container">
+    <mat-card class="login-card">
+        <mat-card-header>
+            <mat-card-title style="text-align: center;"> Welcome to TickerStream AI </mat-card-title>
+        </mat-card-header>
+        <mat-card-header>
+            <mat-card-title> Login </mat-card-title>
+        </mat-card-header>
+        <mat-card-content style="align-items: center;">
+            <form>
+                <mat-form-field>
+                    <mat-label> Username </mat-label>
+                    <input
+                        type="text"
+                        placeholder="Enter your Username"
+                        aria-label="username"
+                        [(ngModel)]="username"
+                        name="usernameInput"
+                        matInput
+                    >
+                </mat-form-field>
+            </form>
+            <form>
+                <mat-form-field>
+                    <mat-label> Password </mat-label>
+                    <input
+                        [type]="hide() ? 'password' : 'text'"
+                        placeholder="Enter your Password"
+                        aria-label="username"
+                        [(ngModel)]="password"
+                        name="passwordInput"
+                        matInput
+                    >
+                    <button
+                        matIconButton
+                        matSuffix
+                        (click)="clickEvent($event)"
+                        style="padding-right: 5px;"
+                    >
+                        <mat-icon >{{hide() ? 'visibility_off' : 'visibility'}}</mat-icon>
+                    </button>
+                </mat-form-field>
+            </form>
+            <!-- <form>
+                <mat-form-field>
+                    <mat-label> First Name </mat-label>
+                    <input
+                        type="text"
+                        placeholder="Enter your First Name"
+                        aria-label="firstName"
+                        [(ngModel)]="firstName"
+                        name="firstNameInput"
+                        matInput
+                    >
+                </mat-form-field>
+            </form> -->
+            <!-- <form>
+                <mat-form-field>
+                    <mat-label> Last Name </mat-label>
+                    <input
+                        type="text"
+                        placeholder="Enter your Last Name"
+                        aria-label="lastName"
+                        [(ngModel)]="lastName"
+                        name="lastNameInput"
+                        matInput
+                    >
+                </mat-form-field>
+            </form> -->
+            <div style="width: 100%; align-items: center; padding-bottom: 5px;">
+                <button
+                    matButton="filled"
+                    (click)="login()"
+                >
+                    Login
+                </button>
+            </div>
+            <mat-divider style="padding-top: 5px;"></mat-divider>
+            <h3>Not registered yet? Register here</h3>
+            <form>
+                <mat-form-field>
+                    <mat-label> First Name </mat-label>
+                    <input
+                        type="text"
+                        placeholder="Enter your First Name"
+                        aria-label="firstName"
+                        [(ngModel)]="firstName"
+                        name="firstNameInput"
+                        matInput
+                    >
+                </mat-form-field>
+            </form>
+            <form>
+                <mat-form-field>
+                    <mat-label> Last Name </mat-label>
+                    <input
+                        type="text"
+                        placeholder="Enter your Last Name"
+                        aria-label="lastName"
+                        [(ngModel)]="lastName"
+                        name="lastNameInput"
+                        matInput
+                    >
+                </mat-form-field>
+            </form>
+            <div style="width: 100%; align-items: center;">
+            <button
+                    mat-button
+                    (click)="register()"
+                >
+                    Register
+                </button>
+            </div>
+        </mat-card-content>
+    </mat-card>
+</main>
