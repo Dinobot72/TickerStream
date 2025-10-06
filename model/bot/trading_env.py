@@ -4,21 +4,25 @@ import pandas as pd
 from gymnasium import spaces
 
 class TradingEnv(gym.Env):
-    def __init__(self, df: pd.DataFrame):
+    def __init__(self, df: pd.DataFrame, initial_balance=100_000, transaction_cost_pct=0.001):
         super().__init__()
-        self.df = df
+        self.df = df.reset_index(drop=True)
+        self.initial_balance = initial_balance
+        self.transaction_cost_pct = transaction_cost_pct
+
+        self.max_steps = len(df) - 1
         self.current_step = 0
-        self.initial_balance = 10000
+
+        # Agent state
         self.balance = self.initial_balance
         self.shares_held = 0
         self.net_worth = self.initial_balance
-        self.max_steps = len(df) - 1
 
-        # Action space: 0 = Buy, 1 = Sell, 2 = Hold
-        self.action_space = spaces.Discrete(3)
+        # Action space: [-1, 1] continuous
+        # -1 = sell max, 0 = hold, 1 = buy max
+        self.action_space = spaces.Box(low=-1, high=1, shape=(1,), dtype=np.float32)
 
-        # Observation space: This is the data the AI sees at each step.
-        # It should include market data and the state of the agent's portfolio.
+        # Observation space: balance, shares_held, price data (OHLC)
         self.observation_space = spaces.Box(
             low=0, high=np.inf, shape=(6,), dtype=np.float32
         )
@@ -29,49 +33,69 @@ class TradingEnv(gym.Env):
         self.shares_held = 0
         self.net_worth = self.initial_balance
         return self._get_observation(), {}
-    
-    def _get_observation(self):
-        # A simple observation for demonstration
-        obs_step = min(self.current_step, self.max_steps)
 
-        row = self.df.iloc[obs_step]
-        observation = [
+    def _get_observation(self):
+        row = self.df.iloc[self.current_step]
+        observation = np.array([
             self.balance,
             self.shares_held,
             row['Open'],
             row['High'],
             row['Low'],
-            row['Close'],
-        ]
-        return np.array(observation, dtype=np.float32)
-    
+            row['Close']
+        ], dtype=np.float32)
+        return observation
+
     def step(self, action):
-        self.current_step += 1
-        if self.current_step >= self.max_steps:
-            terminated = True
-            print(f"net worth: ${self.net_worth:,.2f}\nbalance: ${self.balance:,.2f}\nshares: {self.shares_held:,.2f}\n")
-            info = {'net_worth': self.net_worth, 'shares_held': self.shares_held}
-            return self._get_observation(), 0, terminated, False, info
-        
+        action = np.clip(action[0], -1, 1)
+        done = False
+        info = {}
+
         current_price = self.df.iloc[self.current_step]['Close']
+        prev_net_worth = self.net_worth
 
-        if action == 0: # Buy
-            buy_price = current_price
-            if self.balance > buy_price:
-                # Buy all available shares
-                self.shares_held += int(self.balance / buy_price)
-                self.balance %= buy_price
-        elif action == 1: # Sell
-            sell_price = current_price
-            if self.shares_held > 0:
-                self.balance += self.shares_held * sell_price
-                self.shares_held = 0
+        # SELL
+        if action < 0:
+            sell_fraction = -action
+            shares_to_sell = int(self.shares_held * sell_fraction)
+            if shares_to_sell > 0:
+                proceeds = shares_to_sell * current_price
+                cost = proceeds * self.transaction_cost_pct
+                self.balance += proceeds - cost
+                self.shares_held -= shares_to_sell
 
-        # Calculate new net worth and reward
-        new_net_worth = self.balance + self.shares_held * current_price
-        reward = new_net_worth - self.net_worth
-        self.net_worth = new_net_worth
+        # BUY
+        elif action > 0:
+            buy_fraction = action
+            available_to_spend = self.balance * buy_fraction
+            if available_to_spend > current_price:
+                shares_to_buy = int(available_to_spend / current_price)
+                cost = shares_to_buy * current_price
+                fee = cost * self.transaction_cost_pct
+                total_cost = cost + fee
+                if total_cost <= self.balance:
+                    self.balance -= total_cost
+                    self.shares_held += shares_to_buy
 
-        terminated = False
-        info = {'net_worth': self.net_worth}
-        return self._get_observation(), reward, terminated, False, info 
+        # Update step and net worth
+        self.current_step += 1
+        self.net_worth = self.balance + self.shares_held * current_price
+
+        # Reward = change in net worth (can be negative)
+        reward = self.net_worth - prev_net_worth
+
+        # End of episode
+        if self.current_step >= self.max_steps:
+            done = True
+            final_reward = (self.net_worth - self.initial_balance) / self.initial_balance
+            reward += final_reward  # optional end-of-episode bonus
+
+            info['final'] = {
+                'step': self.current_step,
+                'net_worth': self.net_worth,
+                'profit_pct': final_reward * 100,
+                'balance': self.balance,
+                'shares_held': self.shares_held
+            }
+
+        return self._get_observation(), reward, done, False, info
