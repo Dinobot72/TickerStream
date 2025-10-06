@@ -22,14 +22,21 @@ import { HttpClient, HttpClientModule } from '@angular/common/http';
     styleUrls: ['./dashboard.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class DashboardComponent {
+export class DashboardComponent implements OnInit {
     userName: string = 'user';
     private apiUrl = 'http:localhost:8000/api';
 
     constructor(
     private route: ActivatedRoute,
     private http: HttpClient
-  ) {}
+  ) { }
 
-    
+    ngOnInit(): void {
+        
+    }
+
+    getUserInfo() {
+        this.http.get(`${this.apiUrl}/user`)
+        this.userName = 'Dylan'
+    }
 }
