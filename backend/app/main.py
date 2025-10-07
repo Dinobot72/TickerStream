@@ -112,7 +112,7 @@ def register_user( user: User):
                        (user.username, hashed_password, user.first_name, user.last_name))
         user_id = cursor.lastrowid
 
-        cursor.execute("INSERT INOT portfolios (user_id, balance) VALUES (?, ?)", (user_id, 0.00))
+        cursor.execute("INSERT INTO portfolios (user_id, balance) VALUES (?, ?)", (user_id, 0.00))
         conn.commit()
     except sqlite3.IntegrityError:
         raise HTTPException( status_code=400, detail="Username already exists" )
