@@ -25,7 +25,7 @@ import { AuthService } from '../auth.service';
 })
 export class DashboardComponent implements OnInit {
     userName = signal('User');
-    private apiUrl = 'http:localhost:8000/api';
+    private apiUrl = 'http://localhost:8000/api';
     private authService = inject(AuthService);
     private http = inject(HttpClient);
 

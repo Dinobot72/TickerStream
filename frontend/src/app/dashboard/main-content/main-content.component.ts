@@ -34,7 +34,7 @@ interface Activity {
 })
 export class MainContentComponent implements OnInit {
 
-    private apiUrl = 'http://localhost:8000'; 
+    private apiUrl = 'http://localhost:8000/api'; 
 
     public portfolioValue = signal(0);
     public userBalance = signal(0);

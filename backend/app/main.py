@@ -31,10 +31,11 @@ class PortfolioState( BaseModel ):
 
 class Trade( BaseModel ):
     user_id: int
-    ticker: int
+    ticker: str
     action: str
     quantity: int
     price: float
+    is_bot_trade: bool = False
 
 class User( BaseModel ):
     username: str
@@ -118,7 +119,7 @@ def register_user( user: User):
         raise HTTPException( status_code=400, detail="Username already exists" )
     finally:
         conn.close()
-    return {"mesage": "User registered succesfully"}
+    return {"message": "User registered succesfully"}
 
 @app.post("/api/login")
 def login_for_access_token( credentials: LoginCredentials ):
@@ -137,7 +138,7 @@ def login_for_access_token( credentials: LoginCredentials ):
 @app.get("/api/user/{user_id}")
 def get_user_info( user_id: int, current_user: dict = Depends(get_current_user)):
     if current_user["user_id"] != user_id:
-        raise HTTPException(status_code=403, detail="Not authorized")
+        raise HTTPException(status_code=403, detail=f'not authorized {current_user["user_id"]} != {user_id}')
     
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -156,7 +157,7 @@ def get_user_info( user_id: int, current_user: dict = Depends(get_current_user))
 @app.post("/api/user/{user_id}/deposit")
 def deposit_funds( user_id: int, deposit: Deposit, current_user: dict = Depends(get_current_user)):
     if current_user["user_id"] != user_id:
-        raise HTTPException(status_code=403, detail="Not Authorized")
+        raise HTTPException(status_code=403, detail=f'not authorized {current_user["user_id"]} != {user_id}')
     if deposit.amount < 0:
         raise HTTPException(status_code=400, detail="Deposit amount must be non positive")
     
@@ -179,7 +180,6 @@ def read_root():
         "message": "Hello from the Backend!\n",
         "stock": get_stock_chart('AAPL'),
         "metrics": get_metrics('AAPL'),
-        "portfolio": get_holdings("1") ,
     }
 
 @app.get("/api/stock/{ticker}")
@@ -191,9 +191,9 @@ def get_metrics(ticker: str):
     return get_stock_metrics(ticker.upper())
 
 @app.get("/api/holdings/{user_id}", response_model=List[Dict])
-def get_holdings(user_id: str, current_user: dict = Depends(get_current_user)):
+def get_holdings(user_id: int, current_user: dict = Depends(get_current_user)):
     if current_user["user_id"] != user_id:
-        raise HTTPException(status_code=403, detail="Not Authorized")
+        raise HTTPException(status_code=403, detail=f'not authorized {current_user["user_id"]} != {user_id}')
     
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -205,7 +205,7 @@ def get_holdings(user_id: str, current_user: dict = Depends(get_current_user)):
 @app.post("/api/trade/")
 def record_trade(trade: Trade, current_user: dict = Depends(get_current_user)):
     if current_user["user_id"] != trade.user_id:
-        raise HTTPException(status_code=403, detail="Not Authorized")
+        raise HTTPException(status_code=403, detail=f'not authorized {current_user["user_id"]} != {user_id}')
     
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -238,7 +238,7 @@ def record_trade(trade: Trade, current_user: dict = Depends(get_current_user)):
 @app.get("/api/activity/{user_id}")
 def get_activity(user_id: int, current_user: dict = Depends(get_current_user)):
     if current_user["user_id"] != user_id:
-        raise HTTPException(status_code=403, detail="Not authorized")
+        raise HTTPException(status_code=403, detail=f'not authorized {current_user["user_id"]} != {user_id}')
     
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -248,7 +248,7 @@ def get_activity(user_id: int, current_user: dict = Depends(get_current_user)):
     return activities
 
 @app.post("/api/bot/decision")
-def make_decision(state: PortfolioState):
+def make_decision(state: PortfolioState, current_user: dict = Depends(get_current_user)):
     try:
         decision_result = get_bot_decision(state.balance, state.shares_held)
         if "error" in decision_result:
