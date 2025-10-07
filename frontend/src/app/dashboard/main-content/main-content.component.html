@@ -54,12 +54,12 @@
             <circle class="text-gray-800" stroke-width="8" stroke="currentColor" fill="transparent" r="40" cx="48" cy="48"></circle>
             <circle class="text-green-500" stroke-width="8" stroke="currentColor" stroke-linecap="round" fill="transparent" r="40" cx="48" cy="48" [attr.stroke-dasharray]="'251.2'" [attr.stroke-dashoffset]="portfolioProgress()"></circle>
             </svg>
-            <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-lg font-bold">{{portfolioPercentage()}}%</span>
+            <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-lg font-bold">{{portfolioChange()}}%</span>
         </div>
         <div>
             <div class="text-gray-400 text-sm">Current Value</div>
-            <div class="text-2xl font-bold text-gray-100">${{portfolioValue()}}</div>
-            <div class="text-sm font-medium text-green-500">+{{portfolioPercentage()}}%</div>
+            <div class="text-2xl font-bold text-gray-100">${{portfolioProgress()}}</div>
+            <div class="text-sm font-medium text-green-500">+{{portfolioChange()}}%</div>
         </div>
         </div>
     </div>
