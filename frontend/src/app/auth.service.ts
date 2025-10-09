@@ -32,12 +32,16 @@ export class AuthService {
   login(credentials: {username: string, password: string}) {
     return this.http.post<any>(`${this.apiUrl}/login`, credentials).pipe(
       tap(response => {
+      console.log('Login response:', response);
         if (response && response.access_token) {
+          console.log('Saving Token:', response.access_token);
           this.setToken(response.access_token);
           this.setUserId(response.user_id);
           this.isLoggedIn.set(true);
           this.currentUserId.set(response.user_id);
           this.router.navigate(['/dashboard']);
+        } else {
+          console.error('No access_token in response!');
         }
       })
     );
@@ -52,11 +56,19 @@ export class AuthService {
   }
 
   getToken(): string | null {
-    return localStorage.getItem(this.TOKEN_KEY);
+    if (this.isBrowser) {
+      console.log('Returning TOKEN_KEY: ', this.TOKEN_KEY)
+      return localStorage.getItem(this.TOKEN_KEY);
+    }
+    console.log('Not returning TOKEN_KEY')
+    return null;
   }
 
   getUserId(): string | null {
-    return localStorage.getItem(this.USER_ID_KEY);
+    if (this.isBrowser) {
+      return localStorage.getItem(this.USER_ID_KEY);
+    }
+    return null;
   }
 
   private hasToken(): boolean {
@@ -64,18 +76,26 @@ export class AuthService {
   }
   
   private setToken(token: string): void {
-    localStorage.setItem(this.TOKEN_KEY, token);
+    if (this.isBrowser) {
+      localStorage.setItem(this.TOKEN_KEY, token);
+    }
   }
 
   private removeToken(): void {
-    localStorage.removeItem(this.TOKEN_KEY);
+    if (this.isBrowser) {
+      localStorage.removeItem(this.TOKEN_KEY);
+    }
   }
 
   private setUserId(userId: string): void {
-    localStorage.setItem(this.USER_ID_KEY, userId.toString());
+    if (this.isBrowser) {
+      localStorage.setItem(this.USER_ID_KEY, userId.toString());
+    }
   }
   
   private removeUserId(): void {
-    localStorage.removeItem(this.USER_ID_KEY);
+    if (this.isBrowser) {
+      localStorage.removeItem(this.USER_ID_KEY);
+    }
   }
 }

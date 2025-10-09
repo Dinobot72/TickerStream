@@ -1,5 +1,5 @@
-import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, signal, OnInit, Injectable, Input, inject } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { ChangeDetectionStrategy, Component, computed, signal, OnInit, Injectable, Input, inject, PLATFORM_ID } from '@angular/core';
 import { MatGridListModule } from '@angular/material/grid-list';
 import { HttpClient } from '@angular/common/http';
 import { MatButtonModule } from '@angular/material/button';
@@ -35,6 +35,7 @@ interface Activity {
 export class MainContentComponent implements OnInit {
 
     private apiUrl = 'http://localhost:8000/api'; 
+    private platformId = inject(PLATFORM_ID);
 
     public portfolioValue = signal(0);
     public userBalance = signal(0);
@@ -71,10 +72,12 @@ export class MainContentComponent implements OnInit {
     constructor(private http: HttpClient, private authService: AuthService) {}
 
     ngOnInit(): void {
-        this.fetchUserData();
-        this.fetchPortfolio();
-        this.fetchMetrics();
-        this.fetchActivity();
+        if (isPlatformBrowser(this.platformId)) {
+            this.fetchUserData();
+            this.fetchPortfolio();
+            this.fetchMetrics();
+            this.fetchActivity();
+        }
     }
 
     fetchUserData(): void {
@@ -92,7 +95,7 @@ export class MainContentComponent implements OnInit {
         const userId = this.authService.getUserId();
         if (!userId) return;
 
-        this.http.get<Holding[]>(`${this.apiUrl}/portfolio/${userId}`).subscribe({
+        this.http.get<Holding[]>(`${this.apiUrl}/holdings/${userId}`).subscribe({
             next: (data) => {
                 this.portfolioHoldings.set(data);
                 // Simple calculation for portfolio value (can be improved by fetching live prices for all holdings)
