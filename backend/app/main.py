@@ -55,6 +55,7 @@ app = FastAPI()
 
 origins = [
     "http://localhost:4200",
+    "http://127.0.0.1:4200"
 ]
 
 app.add_middleware(
@@ -171,16 +172,6 @@ def deposit_funds( user_id: int, deposit: Deposit, current_user: dict = Depends(
 
     conn.close()
     return {"message": "Deposit succesful", "new_balance": new_balance}
-    print("hi")
-
-
-@app.get("/")
-def read_root():
-    return {
-        "message": "Hello from the Backend!\n",
-        "stock": get_stock_chart('AAPL'),
-        "metrics": get_metrics('AAPL'),
-    }
 
 @app.get("/api/stock/{ticker}")
 def get_stock_chart( ticker: str ):
@@ -205,7 +196,7 @@ def get_holdings(user_id: int, current_user: dict = Depends(get_current_user)):
 @app.post("/api/trade/")
 def record_trade(trade: Trade, current_user: dict = Depends(get_current_user)):
     if current_user["user_id"] != trade.user_id:
-        raise HTTPException(status_code=403, detail=f'not authorized {current_user["user_id"]} != {user_id}')
+        raise HTTPException(status_code=403, detail=f'not authorized {current_user["user_id"]} != {trade.user_id}')
     
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -257,4 +248,3 @@ def make_decision(state: PortfolioState, current_user: dict = Depends(get_curren
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
  
-

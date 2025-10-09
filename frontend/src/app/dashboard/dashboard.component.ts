@@ -1,5 +1,5 @@
-import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core'
+import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { ChangeDetectionStrategy, Component, computed, inject, OnInit, PLATFORM_ID, signal } from '@angular/core'
 import { MatGridListModule } from '@angular/material/grid-list';
 import { SidebarComponent } from './sidebar/sidebar.comonent';
 import { MainContentComponent } from './main-content/main-content.component';
@@ -28,9 +28,13 @@ export class DashboardComponent implements OnInit {
     private apiUrl = 'http://localhost:8000/api';
     private authService = inject(AuthService);
     private http = inject(HttpClient);
+    private platformId = inject(PLATFORM_ID);
+
 
     ngOnInit(): void {
-        this.fetchUserName();
+        if (isPlatformBrowser(this.platformId)) {
+            this.fetchUserName();
+        }
     }
 
     fetchUserName(): void {
