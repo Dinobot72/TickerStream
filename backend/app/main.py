@@ -1,6 +1,5 @@
-# File: backend/app/main.py
 from fastapi import FastAPI, HTTPException, Depends
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordBearer, HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -23,7 +22,10 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/login")
+try:
+    oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/login")
+except OSError as e:
+ print('Error in ouath2_scheme:', e)
 
 class PortfolioState( BaseModel ):
     balance: float
@@ -63,7 +65,7 @@ app.add_middleware(
     allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"],
+    allow_headers=["Authorization", "Content-Type", "Origin"],
 )
 
 # --- JWT ---
@@ -82,6 +84,7 @@ def create_access_token( data: dict ):
 
 # --- Dependency for getting current user ---
 def get_current_user( token: str = Depends(oauth2_scheme)):
+    print(f"--- TOKEN RECEIVED BY BACKEND DEPENDENCY: {token} ---")
     credentials_exception = HTTPException(
         status_code=401,
         detail="Could not validate Credentials",
@@ -92,8 +95,9 @@ def get_current_user( token: str = Depends(oauth2_scheme)):
         username: str = payload.get("sub")
         user_id: int = payload.get("id")
         if username is None or user_id is None:
-            raise credentials_exception
+            raise credentials_exception.detail("Could not validate Credentials, Username is none")
     except JWTError:
+        print(f"--- JWT DECODE ERROR: {e} ---")
         raise credentials_exception
     
     return {"username": username, "user_id": user_id}
@@ -138,6 +142,7 @@ def login_for_access_token( credentials: LoginCredentials ):
 
 @app.get("/api/user/{user_id}")
 def get_user_info( user_id: int, current_user: dict = Depends(get_current_user)):
+    print('current_user:', current_user['user_id'], 'user_id:', user_id)
     if current_user["user_id"] != user_id:
         raise HTTPException(status_code=403, detail=f'not authorized {current_user["user_id"]} != {user_id}')
     
