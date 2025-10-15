@@ -1,3 +1,4 @@
+// auth.service.ts
 import { Inject, Injectable, PLATFORM_ID, signal } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
@@ -52,6 +53,7 @@ export class AuthService {
     this.removeUserId();
     this.isLoggedIn.set(false);
     this.currentUserId.set(null);
+    localStorage.clear();
     this.router.navigate(['/login']);
   }
 
@@ -77,7 +79,13 @@ export class AuthService {
   
   private setToken(token: string): void {
     if (this.isBrowser) {
-      localStorage.setItem(this.TOKEN_KEY, token);
+      console.log('Storing token in LocalStorage');
+      try {
+        localStorage.setItem(this.TOKEN_KEY, token);
+      }
+      catch (e) {
+        console.log('Failed to store token in LocalStorage', e)
+      }
     }
   }
 
@@ -89,7 +97,14 @@ export class AuthService {
 
   private setUserId(userId: string): void {
     if (this.isBrowser) {
-      localStorage.setItem(this.USER_ID_KEY, userId.toString());
+      console.log('Storing userId in LocalStorage');
+      try {
+        localStorage.setItem(this.USER_ID_KEY, userId.toString());
+      }
+      catch (e) {
+        console.log('Failed to store userID in LocalStorage:', e);
+      }
+
     }
   }
   

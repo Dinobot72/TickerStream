@@ -40,6 +40,7 @@ export class DashboardComponent implements OnInit {
     fetchUserName(): void {
         const userId = this.authService.getUserId();
         if (userId) {
+            console.log(userId)
             this.http.get<any>(`${this.apiUrl}/user/${userId}`).subscribe({
                 next: (data) => {
                     this.userName.set(data.first_name);
