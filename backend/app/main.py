@@ -1,11 +1,11 @@
-from fastapi import FastAPI, HTTPException, Depends
-from fastapi.security import OAuth2PasswordBearer, HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import FastAPI, HTTPException, Depends, Response, Request
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from pydantic import BaseModel
-from typing import List, Dict
+from typing import List, Dict, Optional
 import sys
 import os
 import sqlite3
@@ -20,12 +20,19 @@ from .services import get_stock_data, get_stock_metrics
 SECRET_KEY = "604f4b0bb91cbf5d981f3152a0b2223eceaf22f18df22d1e7511a835da818a20"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
+COOKIE_NAME = "access_token"
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-try:
-    oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/login")
-except OSError as e:
- print('Error in ouath2_scheme:', e)
+
+class CookieBearer(HTTPBearer):
+    async def __call__(self, request: Request) -> Optional[HTTPAuthorizationCredentials]:
+        token = request.cookies.get(COOKIE_NAME)
+        if token:
+            return HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
+        
+        return await super().__call__(request)
+    
+cookie_bearer = CookieBearer(auto_error=False)
 
 class PortfolioState( BaseModel ):
     balance: float
@@ -57,7 +64,7 @@ app = FastAPI()
 
 origins = [
     "http://localhost:4200",
-    "http://127.0.0.1:4200"
+    "http://127.0.0.1:4200",
 ]
 
 app.add_middleware(
@@ -65,7 +72,7 @@ app.add_middleware(
     allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["Authorization", "Content-Type", "Origin"],
+    allow_headers=["*"],
 )
 
 # --- JWT ---
@@ -82,14 +89,36 @@ def create_access_token( data: dict ):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
+def set_auth_cookie(response: Response, token: str):
+    response.set_cookie(
+        key=COOKIE_NAME,
+        value=token,
+        httponly=True,
+        secure=False, # Set to true in production
+        samesite="lax",
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        path="/",
+    )
+
 # --- Dependency for getting current user ---
-def get_current_user( token: str = Depends(oauth2_scheme)):
-    print(f"--- TOKEN RECEIVED BY BACKEND DEPENDENCY: {token} ---")
+async def get_current_user( 
+        request: Request,
+        credentials: Optional[HTTPAuthorizationCredentials] = Depends(cookie_bearer)
+):
     credentials_exception = HTTPException(
         status_code=401,
         detail="Could not validate Credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
+    # Get token
+    token = request.cookies.get(COOKIE_NAME)
+    if not token and credentials:
+        token = credentials.credentials
+
+    if not token:
+        raise credentials_exception
+
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
@@ -127,18 +156,30 @@ def register_user( user: User):
     return {"message": "User registered succesfully"}
 
 @app.post("/api/login")
-def login_for_access_token( credentials: LoginCredentials ):
+def login_for_access_token( response: Response, credentials: LoginCredentials ):
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT user_id, password FROM users WHERE username = ?", (credentials.username,))
     user = cursor.fetchone()
     conn.close()
+
     if user is None or not verify_password(credentials.password, user["password"]):
         raise HTTPException(status_code=401, detail="Invalid username or password")
     
     access_token = create_access_token(data={"sub": credentials.username, "id": user["user_id"]})
 
+    set_auth_cookie(response, access_token)
+
     return {"message": "Login successful", "access_token": access_token, "token_type": "bearer", "user_id": user["user_id"]}
+
+@app.post("/api/logout")
+def logout( response: Response):
+    response.delete_cookie(COOKIE_NAME)
+    return {"message": "Logged out succesfully"}
+
+@app.get("/api/auth/status")
+def check_auth_status( current_user: Dict = Depends(get_current_user)):
+    return {"authenticated": True, "user": current_user}
 
 @app.get("/api/user/{user_id}")
 def get_user_info( user_id: int, current_user: dict = Depends(get_current_user)):
