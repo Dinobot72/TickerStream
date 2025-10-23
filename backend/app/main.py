@@ -1,12 +1,11 @@
-# File: backend/app/main.py
-from fastapi import FastAPI, HTTPException, Depends
-from fastapi.security import OAuth2PasswordBearer
+from fastapi import FastAPI, HTTPException, Depends, Response, Request
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pydantic import BaseModel
-from typing import List, Dict
+from typing import List, Dict, Optional
 import sys
 import os
 import sqlite3
@@ -21,9 +20,19 @@ from .services import get_stock_data, get_stock_metrics
 SECRET_KEY = "604f4b0bb91cbf5d981f3152a0b2223eceaf22f18df22d1e7511a835da818a20"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
+COOKIE_NAME = "access_token"
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/login")
+
+class CookieBearer(HTTPBearer):
+    async def __call__(self, request: Request) -> Optional[HTTPAuthorizationCredentials]:
+        token = request.cookies.get(COOKIE_NAME)
+        if token:
+            return HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
+        
+        return await super().__call__(request)
+    
+cookie_bearer = CookieBearer(auto_error=False)
 
 class PortfolioState( BaseModel ):
     balance: float
@@ -31,10 +40,11 @@ class PortfolioState( BaseModel ):
 
 class Trade( BaseModel ):
     user_id: int
-    ticker: int
+    ticker: str
     action: str
     quantity: int
     price: float
+    is_bot_trade: bool = False
 
 class User( BaseModel ):
     username: str
@@ -54,6 +64,7 @@ app = FastAPI()
 
 origins = [
     "http://localhost:4200",
+    "http://127.0.0.1:4200",
 ]
 
 app.add_middleware(
@@ -73,25 +84,63 @@ def get_password_hash( password ):
 
 def create_access_token( data: dict ):
     to_encode = data.copy()
-    expire = datetime.now() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    print(f'Access Token Exprire: {expire}')
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
+def set_auth_cookie(response: Response, token: str):
+    response.set_cookie(
+        key=COOKIE_NAME,
+        value=token,
+        httponly=True,
+        secure=False, # Set to true in production
+        samesite="lax",
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        path="/",
+        domain=None,
+    )
+
 # --- Dependency for getting current user ---
-def get_current_user( token: str = Depends(oauth2_scheme)):
+async def get_current_user( 
+        request: Request,
+        credentials: Optional[HTTPAuthorizationCredentials] = Depends(cookie_bearer)
+):
     credentials_exception = HTTPException(
         status_code=401,
         detail="Could not validate Credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
+    print(f"All cookies in request: {request.cookies}")
+
+    # Get token
+    token = request.cookies.get(COOKIE_NAME)
+    print(f"Looking for cookie: {COOKIE_NAME}")
+    print(f"Token found: {token is not None}")
+
+    if not token and credentials:
+        token = credentials.credentials
+        print(f"Token found: {token is not None}")
+
+
+    if not token:
+        print("No token found in Request")
+        raise credentials_exception
+
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         user_id: int = payload.get("id")
+
+        print(f"Decoded token - username: {username}, user_id: {user_id}")
+
         if username is None or user_id is None:
-            raise credentials_exception
-    except JWTError:
+            raise credentials_exception.detail("Could not validate Credentials, Username is none")
+        
+    except JWTError as e:
+        print(f"--- JWT DECODE ERROR: {e} ---")
         raise credentials_exception
     
     return {"username": username, "user_id": user_id}
@@ -112,32 +161,49 @@ def register_user( user: User):
                        (user.username, hashed_password, user.first_name, user.last_name))
         user_id = cursor.lastrowid
 
-        cursor.execute("INSERT INOT portfolios (user_id, balance) VALUES (?, ?)", (user_id, 0.00))
+        cursor.execute("INSERT INTO portfolios (user_id, balance) VALUES (?, ?)", (user_id, 0.00))
         conn.commit()
     except sqlite3.IntegrityError:
         raise HTTPException( status_code=400, detail="Username already exists" )
     finally:
         conn.close()
-    return {"mesage": "User registered succesfully"}
+    return {"message": "User registered succesfully"}
 
 @app.post("/api/login")
-def login_for_access_token( credentials: LoginCredentials ):
+def login_for_access_token( response: Response, credentials: LoginCredentials ):
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT user_id, password FROM users WHERE username = ?", (credentials.username,))
     user = cursor.fetchone()
     conn.close()
+
     if user is None or not verify_password(credentials.password, user["password"]):
         raise HTTPException(status_code=401, detail="Invalid username or password")
     
+    print(f"Setting cookie for user: {credentials.username}")
     access_token = create_access_token(data={"sub": credentials.username, "id": user["user_id"]})
 
-    return {"message": "Login successful", "access_token": access_token, "token_type": "bearer", "user_id": user["user_id"]}
+    set_auth_cookie(response, access_token)
+
+    return {"message": "Login successful",
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user_id": user["user_id"]}
+
+@app.post("/api/logout")
+def logout( response: Response):
+    response.delete_cookie(COOKIE_NAME)
+    return {"message": "Logged out succesfully"}
+
+@app.get("/api/auth/status")
+def check_auth_status( current_user: Dict = Depends(get_current_user)):
+    return {"authenticated": True, "user": current_user}
 
 @app.get("/api/user/{user_id}")
 def get_user_info( user_id: int, current_user: dict = Depends(get_current_user)):
+    print('current_user:', current_user['user_id'], 'user_id:', user_id)
     if current_user["user_id"] != user_id:
-        raise HTTPException(status_code=403, detail="Not authorized")
+        raise HTTPException(status_code=403, detail=f'not authorized {current_user["user_id"]} != {user_id}')
     
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -156,7 +222,7 @@ def get_user_info( user_id: int, current_user: dict = Depends(get_current_user))
 @app.post("/api/user/{user_id}/deposit")
 def deposit_funds( user_id: int, deposit: Deposit, current_user: dict = Depends(get_current_user)):
     if current_user["user_id"] != user_id:
-        raise HTTPException(status_code=403, detail="Not Authorized")
+        raise HTTPException(status_code=403, detail=f'not authorized {current_user["user_id"]} != {user_id}')
     if deposit.amount < 0:
         raise HTTPException(status_code=400, detail="Deposit amount must be non positive")
     
@@ -170,17 +236,6 @@ def deposit_funds( user_id: int, deposit: Deposit, current_user: dict = Depends(
 
     conn.close()
     return {"message": "Deposit succesful", "new_balance": new_balance}
-    print("hi")
-
-
-@app.get("/")
-def read_root():
-    return {
-        "message": "Hello from the Backend!\n",
-        "stock": get_stock_chart('AAPL'),
-        "metrics": get_metrics('AAPL'),
-        "portfolio": get_holdings("1") ,
-    }
 
 @app.get("/api/stock/{ticker}")
 def get_stock_chart( ticker: str ):
@@ -191,9 +246,9 @@ def get_metrics(ticker: str):
     return get_stock_metrics(ticker.upper())
 
 @app.get("/api/holdings/{user_id}", response_model=List[Dict])
-def get_holdings(user_id: str, current_user: dict = Depends(get_current_user)):
+def get_holdings(user_id: int, current_user: dict = Depends(get_current_user)):
     if current_user["user_id"] != user_id:
-        raise HTTPException(status_code=403, detail="Not Authorized")
+        raise HTTPException(status_code=403, detail=f'not authorized {current_user["user_id"]} != {user_id}')
     
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -205,7 +260,7 @@ def get_holdings(user_id: str, current_user: dict = Depends(get_current_user)):
 @app.post("/api/trade/")
 def record_trade(trade: Trade, current_user: dict = Depends(get_current_user)):
     if current_user["user_id"] != trade.user_id:
-        raise HTTPException(status_code=403, detail="Not Authorized")
+        raise HTTPException(status_code=403, detail=f'not authorized {current_user["user_id"]} != {trade.user_id}')
     
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -238,7 +293,7 @@ def record_trade(trade: Trade, current_user: dict = Depends(get_current_user)):
 @app.get("/api/activity/{user_id}")
 def get_activity(user_id: int, current_user: dict = Depends(get_current_user)):
     if current_user["user_id"] != user_id:
-        raise HTTPException(status_code=403, detail="Not authorized")
+        raise HTTPException(status_code=403, detail=f'not authorized {current_user["user_id"]} != {user_id}')
     
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -248,7 +303,7 @@ def get_activity(user_id: int, current_user: dict = Depends(get_current_user)):
     return activities
 
 @app.post("/api/bot/decision")
-def make_decision(state: PortfolioState):
+def make_decision(state: PortfolioState, current_user: dict = Depends(get_current_user)):
     try:
         decision_result = get_bot_decision(state.balance, state.shares_held)
         if "error" in decision_result:
@@ -257,4 +312,3 @@ def make_decision(state: PortfolioState):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
  
-

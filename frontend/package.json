@@ -9,6 +9,9 @@
     "test": "ng test",
     "serve:ssr:stockBot": "node dist/stockBot/server/server.mjs"
   },
+  "engines": {
+    "node": "^20.19.5"
+  },
   "prettier": {
     "printWidth": 100,
     "singleQuote": true,
