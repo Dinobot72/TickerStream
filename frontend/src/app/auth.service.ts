@@ -1,20 +1,22 @@
+// auth.service.ts
 import { Inject, Injectable, PLATFORM_ID, signal } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { tap } from 'rxjs/operators';
+import { tap, catchError } from 'rxjs/operators';
+import { map, of, Observable } from 'rxjs';
+import { response } from 'express';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
   private apiUrl = 'http://localhost:8000/api';
-  private readonly TOKEN_KEY = 'auth_token';
-  private readonly USER_ID_KEY ='auth_user_id';
   private isBrowser?: boolean;
 
   isLoggedIn = signal<boolean>(false);
   currentUserId = signal<string | null>(null);
+  currentUsername = signal<string | null>(null);
 
   constructor(
     private http: HttpClient, 
@@ -24,58 +26,68 @@ export class AuthService {
     this.isBrowser = isPlatformBrowser(this.platformId);
 
     if (this.isBrowser) {
-      this.isLoggedIn.set(this.hasToken());
-      this.currentUserId.set(this.getUserId());
+      this.checkAuthStatus().subscribe();
     }
   }
 
   login(credentials: {username: string, password: string}) {
-    return this.http.post<any>(`${this.apiUrl}/login`, credentials).pipe(
+    return this.http.post<any>(`${this.apiUrl}/login`, credentials, { withCredentials: true }).pipe(
       tap(response => {
-        if (response && response.access_token) {
-          this.setToken(response.access_token);
-          this.setUserId(response.user_id);
+        console.log('Login response:', response);
           this.isLoggedIn.set(true);
           this.currentUserId.set(response.user_id);
+          this.currentUsername.set(response.username)
           this.router.navigate(['/dashboard']);
-        }
       })
     );
   }
 
   logout(): void {
-    this.removeToken();
-    this.removeUserId();
+    this.http.post(`${this.apiUrl}/logout`, {}, {withCredentials: true})
+      .subscribe({
+        next: () => {
+          this.clearAuthState();
+          this.router.navigate(['/login']);
+        },
+        error: () => {
+          this.clearAuthState();
+          this.router.navigate(['/login']);
+        }
+      });
+  }
+
+  private clearAuthState(): void {
     this.isLoggedIn.set(false);
     this.currentUserId.set(null);
-    this.router.navigate(['/login']);
+    this.currentUsername.set(null);
   }
 
-  getToken(): string | null {
-    return localStorage.getItem(this.TOKEN_KEY);
+  checkAuthStatus(): Observable<boolean> {
+    return this.http.get<{authenticated: boolean, user: any}>(`${this.apiUrl}/auth/status`, {
+      withCredentials: true
+    }).pipe(
+      tap(response => {
+        console.log('Auth status response:', response);
+        if (response.authenticated) {
+          this.isLoggedIn.set(true);
+          this.currentUserId.set(response.user.user_id);
+          this.currentUsername.set(response.user.username);
+          console.log('User authenticated');
+        } else {
+          console.log('User not authenticated');
+          this.clearAuthState();
+        }
+      }),
+      map(response => response.authenticated),
+      catchError(error => {
+        console.error('Auth status check error:', error);
+        this.clearAuthState();
+        return of(false);
+      })
+    );
   }
 
-  getUserId(): string | null {
-    return localStorage.getItem(this.USER_ID_KEY);
-  }
-
-  private hasToken(): boolean {
-    return !!this.getToken();
-  }
-  
-  private setToken(token: string): void {
-    localStorage.setItem(this.TOKEN_KEY, token);
-  }
-
-  private removeToken(): void {
-    localStorage.removeItem(this.TOKEN_KEY);
-  }
-
-  private setUserId(userId: string): void {
-    localStorage.setItem(this.USER_ID_KEY, userId.toString());
-  }
-  
-  private removeUserId(): void {
-    localStorage.removeItem(this.USER_ID_KEY);
+  isAuthenticated(): Observable<boolean> {
+    return this.checkAuthStatus();
   }
 }

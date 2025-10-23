@@ -54,6 +54,7 @@ export class LoginComponent {
             .subscribe({
                 next: (response) => {
                     console.log('Login successful from component', response);
+                    // this.router.navigate(['/dashboard']);
                     // Navigation is now handled by the AuthService
                 },
                 error: (err) => {
@@ -75,6 +76,7 @@ export class LoginComponent {
         this.http.post(`${this.apiUrl}/register`, user)
             .subscribe({
                 next: (response) => {
+                    localStorage.clear();
                     console.log('Regestration succesful', response);
                     this.login()
                 },
