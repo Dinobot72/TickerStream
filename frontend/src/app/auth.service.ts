@@ -67,16 +67,20 @@ export class AuthService {
       withCredentials: true
     }).pipe(
       tap(response => {
+        console.log('Auth status response:', response);
         if (response.authenticated) {
           this.isLoggedIn.set(true);
           this.currentUserId.set(response.user.user_id);
           this.currentUsername.set(response.user.username);
+          console.log('User authenticated');
         } else {
+          console.log('User not authenticated');
           this.clearAuthState();
         }
       }),
       map(response => response.authenticated),
       catchError(error => {
+        console.error('Auth status check error:', error);
         this.clearAuthState();
         return of(false);
       })

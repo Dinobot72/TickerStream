@@ -15,7 +15,7 @@ class TrainingCallback(BaseCallback):
                 mean_length = np.mean([ep_info['l'] for ep_info in self.model.ep_info_buffer])
                 print(f"Step: {self.num_timesteps:<10} | Mean Reward: {mean_reward:<8.2f} | Mean Ep Length: {mean_length:<8.0f}")
 
-        # ✅ Grab portfolio info from `infos`
+        # Grab portfolio info from infos
         infos = self.locals.get("infos", None)
         if infos is not None and len(infos) > 0:
             snap = infos[0].get("portfolio_snapshot", None)

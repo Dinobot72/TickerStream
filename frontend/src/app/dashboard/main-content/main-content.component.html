@@ -19,7 +19,10 @@
         </svg>
     </button>
     <div class="flex items-center space-x-2">
-        <img class="user-avatar" [src]="'https://placehold.co/100x100/2f534f/ffffff?text=' + userName[0]" alt="User Avatar">
+        <button (click)="logOut()">
+            <p> Click me </p>
+            <img class="user-avatar" [src]="'https://placehold.co/100x100/2f534f/ffffff?text=' + userName[0]" alt="User Avatar">
+        </button>
         <span class="text-sm font-medium text-gray-300">{{ this.userName}}</span>
     </div>
     </div>
@@ -58,7 +61,7 @@
         </div>
         <div>
             <div class="text-gray-400 text-sm">Current Value</div>
-            <div class="text-2xl font-bold text-gray-100">${{portfolioProgress()}}</div>
+            <div class="text-2xl font-bold text-gray-100">${{portfolioValue()}}</div>
             <div class="text-sm font-medium text-green-500">+{{portfolioChange()}}%</div>
         </div>
         </div>
@@ -99,5 +102,5 @@
     </div>
     </div>
 </div>
-<button matButton height="30px" width="70px">Deposit</button>
+<button matButton height="30px" width="70px" (click)="deposit()">Deposit</button>
 </main>

@@ -4,6 +4,7 @@ import { MatGridListModule } from '@angular/material/grid-list';
 import { HttpClient } from '@angular/common/http';
 import { MatButtonModule } from '@angular/material/button';
 import { AuthService } from '../../auth.service';
+import { NavigationEnd, Router } from '@angular/router';
 
 interface Holding {
     ticker: string;
@@ -35,6 +36,7 @@ interface Activity {
 export class MainContentComponent implements OnInit {
 
     private apiUrl = 'http://localhost:8000/api'; 
+    private router = inject(Router);
     private platformId = inject(PLATFORM_ID);
 
     public portfolioValue = signal(0);
@@ -51,7 +53,7 @@ export class MainContentComponent implements OnInit {
     public botActivity = signal<Activity[]>([]);
 
     @Input() userName: string = 'User';
-    
+
 
     // portfolioPercentage = computed(() => {
     //     const target = 50000;
@@ -81,9 +83,9 @@ export class MainContentComponent implements OnInit {
     }
 
     fetchUserData(): void {
-        const userId = this.authService.getUserId();
+        const userId = this.authService.currentUserId();
         if (!userId) return;
-        this.http.get<any>(`${this.apiUrl}/user/${userId}`).subscribe({
+        this.http.get<any>(`${this.apiUrl}/user/${userId}`, {withCredentials: true}).subscribe({
             next: (data) => {
                 this.userBalance.set(data.balance);
             },
@@ -92,10 +94,10 @@ export class MainContentComponent implements OnInit {
     }
 
     fetchPortfolio(): void {
-        const userId = this.authService.getUserId();
+        const userId = this.authService.currentUserId();
         if (!userId) return;
 
-        this.http.get<Holding[]>(`${this.apiUrl}/holdings/${userId}`).subscribe({
+        this.http.get<Holding[]>(`${this.apiUrl}/holdings/${userId}`, {withCredentials: true}).subscribe({
             next: (data) => {
                 this.portfolioHoldings.set(data);
                 // Simple calculation for portfolio value (can be improved by fetching live prices for all holdings)
@@ -109,7 +111,7 @@ export class MainContentComponent implements OnInit {
     }
 
     fetchMetrics(): void {
-        this.http.get<any>(`${this.apiUrl}/metrics/${this.ticker}`).subscribe({
+        this.http.get<any>(`${this.apiUrl}/metrics/${this.ticker}`, {withCredentials: true}).subscribe({
             next: (data) => {
                 this.marketCap.set(data.market_cap);
                 this.peRatio.set(data.pe_ratio)
@@ -121,9 +123,9 @@ export class MainContentComponent implements OnInit {
     }
     
     fetchActivity(): void {
-        const userId = this.authService.getUserId();
+        const userId = this.authService.currentUserId();
         if (!userId) return;
-        this.http.get<Activity[]>(`${this.apiUrl}/activity/${userId}`).subscribe({
+        this.http.get<Activity[]>(`${this.apiUrl}/activity/${userId}`, {withCredentials: true}).subscribe({
             next: (data) => this.botActivity.set(data),
             error: (err) => console.error('Failed to fetch activity', err)
         });
@@ -133,9 +135,9 @@ export class MainContentComponent implements OnInit {
         const amountStr = prompt("Enter amount to deposit:", "1000");
         if (amountStr) {
             const amount = parseFloat(amountStr);
-            const userId = this.authService.getUserId();
+            const userId = this.authService.currentUserId();
             if (!isNaN(amount) && amount > 0 && userId) {
-                this.http.post<any>(`${this.apiUrl}/user/${userId}/deposit`, { amount }).subscribe({
+                this.http.post<any>(`${this.apiUrl}/user/${userId}/deposit`, { amount }, {withCredentials: true}).subscribe({
                     next: (res) => {
                         this.userBalance.set(res.new_balance);
                         alert(`Deposit successful. New balance: $${res.new_balance.toFixed(2)}`);
@@ -152,7 +154,7 @@ export class MainContentComponent implements OnInit {
     }
     
     getBotDecision(): void {
-        const userId = this.authService.getUserId();
+        const userId = this.authService.currentUserId();
         if (!userId) return;
 
         const aaplHolding = this.portfolioHoldings().find(h => h.ticker === 'AAPL');
@@ -177,5 +179,17 @@ export class MainContentComponent implements OnInit {
                 console.error('Bot decision failed', err);
             }
         });
+    }
+    logOut(): void {
+        console.log('Loggin out');
+        this.http.post<any>(`${this.apiUrl}/logout`, {}, { withCredentials: true }).subscribe({
+            next: (res) => {
+                this.router.navigate(['/login']);
+                console.log(res);
+            },
+            error: (err) => {
+                console.log(err);
+            }
+        })
     }
 }
