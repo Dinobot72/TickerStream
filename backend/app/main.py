@@ -3,7 +3,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pydantic import BaseModel
 from typing import List, Dict, Optional
 import sys
@@ -84,7 +84,8 @@ def get_password_hash( password ):
 
 def create_access_token( data: dict ):
     to_encode = data.copy()
-    expire = datetime.now() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    print(f'Access Token Exprire: {expire}')
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
@@ -98,6 +99,7 @@ def set_auth_cookie(response: Response, token: str):
         samesite="lax",
         max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         path="/",
+        domain=None,
     )
 
 # --- Dependency for getting current user ---
@@ -111,21 +113,33 @@ async def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
 
+    print(f"All cookies in request: {request.cookies}")
+
     # Get token
     token = request.cookies.get(COOKIE_NAME)
+    print(f"Looking for cookie: {COOKIE_NAME}")
+    print(f"Token found: {token is not None}")
+
     if not token and credentials:
         token = credentials.credentials
+        print(f"Token found: {token is not None}")
+
 
     if not token:
+        print("No token found in Request")
         raise credentials_exception
 
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         user_id: int = payload.get("id")
+
+        print(f"Decoded token - username: {username}, user_id: {user_id}")
+
         if username is None or user_id is None:
             raise credentials_exception.detail("Could not validate Credentials, Username is none")
-    except JWTError:
+        
+    except JWTError as e:
         print(f"--- JWT DECODE ERROR: {e} ---")
         raise credentials_exception
     
@@ -166,11 +180,15 @@ def login_for_access_token( response: Response, credentials: LoginCredentials ):
     if user is None or not verify_password(credentials.password, user["password"]):
         raise HTTPException(status_code=401, detail="Invalid username or password")
     
+    print(f"Setting cookie for user: {credentials.username}")
     access_token = create_access_token(data={"sub": credentials.username, "id": user["user_id"]})
 
     set_auth_cookie(response, access_token)
 
-    return {"message": "Login successful", "access_token": access_token, "token_type": "bearer", "user_id": user["user_id"]}
+    return {"message": "Login successful",
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user_id": user["user_id"]}
 
 @app.post("/api/logout")
 def logout( response: Response):
