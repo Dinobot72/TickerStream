@@ -1,6 +1,6 @@
-import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, signal } from'@angular/core';
-import { FormControl, FormsModule } from '@angular/forms';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { ChangeDetectionStrategy, Component, inject, signal, OnInit, AfterViewInit, OnDestroy, ElementRef, ViewChild, PLATFORM_ID, NgZone } from '@angular/core';
+import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -26,36 +26,90 @@ import { AuthService } from '../auth.service';
     ],
     templateUrl: './login.component.html',
     styleUrls: ['./login.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit, OnDestroy {
 
     private apiUrl = 'http://localhost:8000/api'; 
-    private router = inject(Router);
     private authService = inject(AuthService);
+    private platformId = inject(PLATFORM_ID);
+    private ngZone = inject(NgZone);
 
-    usernameFormControl = new FormControl('');
+    @ViewChild('marketWaveCanvas') canvasRef!: ElementRef<HTMLCanvasElement>;
+    @ViewChild('tickerStreamContainer') tickerContainerRef!: ElementRef<HTMLDivElement>;
 
     username: string = '';
     password: string = '';
     firstName: string = '';
     lastName: string = '';
 
-    hide = signal(true);
+    hidePassword = signal(true);
+    isLoginActive = signal(true);
+
+    // Animation variables
+    private animationFrameId: number | null = null;
+    private canvas!: HTMLCanvasElement;
+    private ctx!: CanvasRenderingContext2D;
+    private w!: number;
+    private h!: number;
+    private time = 0;
+    private waves = [
+        { amp: 50, freq: 0.01, speed: 0.015, color: 'rgba(0, 230, 118, 0.2)', width: 2 }, // Green
+        { amp: 60, freq: 0.008, speed: 0.01, color: 'rgba(255, 82, 82, 0.2)', width: 2 },   // Red
+        { amp: 70, freq: 0.005, speed: 0.02, color: 'rgba(0, 191, 255, 0.3)', width: 3 }    // Blue (from CSS variables)
+    ];
+    private tickerSymbols = ['TKS.AI', 'GLOBL', 'FINX', 'NVDA', 'TSLA', 'AAPL', 'MSFT', 'AMZN', 'GOOGL', 'BTC', 'ETH', 'SOL'];
+    private tickerRowCount = 15;
 
     constructor( private http: HttpClient ) {}
 
-    clickEvent(event: MouseEvent) {
-        this.hide.set(!this.hide());
-        event.stopPropagation();
+    ngOnInit(): void {
+        if (isPlatformBrowser(this.platformId)) {
+            this.ngZone.runOutsideAngular(() => {
+                this.setupCanvas();
+                this.startAnimationLoop();
+                this.setupTickerStream();
+                window.addEventListener('resize', this.onResize);
+            });
+        }
     }
 
-    login() {
+    ngOnDestroy(): void {
+        if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId);
+        }
+        if (isPlatformBrowser(this.platformId)) {
+            window.removeEventListener('resize', this.onResize);
+        }
+    }
+
+    togglePasswordVisibility(): void {
+        this.hidePassword.set(!this.hidePassword());
+    }
+
+    showLoginForm(): void {
+        this.isLoginActive.set(true);
+        this.clearForm();
+    }
+
+    showRegisterForm(): void {
+        this.isLoginActive.set(false);
+        this.clearForm();
+    }
+
+    clearForm(): void {
+        this.username = '';
+        this.password = '';
+        this.firstName = '';
+        this.lastName = '';
+    }
+
+    login(): void {
+        console.log('username: ', this.username,' password: ', this.password)
         this.authService.login({ username: this.username, password: this.password })
             .subscribe({
                 next: (response) => {
                     console.log('Login successful from component', response);
-                    // this.router.navigate(['/dashboard']);
-                    // Navigation is now handled by the AuthService
                 },
                 error: (err) => {
                     console.error('Login failed', err);
@@ -76,13 +130,103 @@ export class LoginComponent {
         this.http.post(`${this.apiUrl}/register`, user)
             .subscribe({
                 next: (response) => {
-                    localStorage.clear();
                     console.log('Regestration succesful', response);
-                    this.login()
+                    alert('Registration succesful! please log in');
+                    this.showLoginForm();
                 },
                 error: (err) => {
                     console.log('Registration Failed', err);
                 }
             });
+    }
+
+    private setupCanvas(): void {
+        try {
+            this.canvas = document.getElementById('market-wave-canvas') as HTMLCanvasElement;
+            if (!this.canvas) {
+                console.error('Canvas element not found!');
+                return;
+            }
+            const context = this.canvas.getContext('2d');
+            if (!context) {
+                 console.error('Could not get 2D context for canvas!');
+                 return;
+            }
+            this.ctx = context;
+            this.w = this.canvas.width = window.innerWidth;
+            this.h = this.canvas.height = window.innerHeight;
+        } catch (error) {
+            console.error("Error setting up canvas:", error);
+        }
+    }
+
+    private startAnimationLoop = (): void => {
+         this.drawWave();
+         this.animationFrameId = requestAnimationFrame(this.startAnimationLoop);
+    }
+
+    private drawWave = (): void => {
+        if (!this.ctx) return;
+        this.ctx.clearRect(0, 0, this.w, this.h);
+        this.time += 0.02;
+
+        this.waves.forEach(wave => {
+            this.ctx.beginPath();
+            this.ctx.lineWidth = wave.width;
+            this.ctx.strokeStyle = wave.color;
+
+            for (let x = 0; x < this.w; x++) {
+                const y = this.h / 2 + Math.sin(x * wave.freq + this.time * wave.speed) * wave.amp * Math.sin(this.time * 0.1);
+                this.ctx.lineTo(x, y);
+            }
+            this.ctx.stroke();
+        });
+    }
+
+     private setupTickerStream(): void {
+        try {
+            const container = document.getElementById('ticker-stream-container');
+            if (!container) {
+                 console.error('Ticker stream container not found!');
+                 return;
+            }
+            // Clear existing rows if any (e.g., on resize/re-init)
+            container.innerHTML = '';
+
+            for (let i = 0; i < this.tickerRowCount; i++) {
+                const row = document.createElement('div');
+                row.className = 'ticker-row';
+                row.style.top = `${Math.random() * 100}%`;
+                row.style.animationDuration = `${Math.random() * 40 + 40}s`;
+                row.style.animationDelay = `${Math.random() * -60}s`; // Start some immediately
+                row.style.opacity = `${Math.random() * 0.3 + 0.1}`; // Random faintness
+                row.innerHTML = this.generateTickerContent();
+                container.appendChild(row);
+            }
+        } catch (error) {
+            console.error("Error setting up ticker stream:", error);
+        }
+    }
+
+    private generateTickerContent(): string {
+        let content = '';
+        // Generate enough content to fill the screen width multiple times for seamless looping
+        for(let i = 0; i < 100; i++) { // Adjust count based on typical screen widths
+            const symbol = this.tickerSymbols[Math.floor(Math.random() * this.tickerSymbols.length)];
+            const change = (Math.random() * 5 - 2.5).toFixed(2); // Random change +/- 2.5%
+            const className = Number(change) >= 0 ? 'gain' : 'loss';
+            content += `<span class="${className}">${symbol} ${Number(change) >= 0 ? '+' : ''}${change}%</span>`;
+        }
+        return content + content; // Duplicate content for smooth scrolling illusion
+    }
+
+
+    private onResize = (): void => {
+        // Rerun setup functions outside Angular zone on resize
+        this.ngZone.runOutsideAngular(() => {
+            this.setupCanvas(); // Re-initializes dimensions and context
+            // Optionally clear and regenerate tickers if needed, though CSS might handle layout
+             this.setupTickerStream();
+        });
     }
 }   
