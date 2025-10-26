@@ -72,7 +72,7 @@
         <p class="loading-message" style="padding: 1rem 0;">Loading activity...</p>
       } @else if (activityError()) {
         <p class="error-message" style="padding: 1rem 0;">{{ activityError() }}</p>
-      } @else if (!botActivityLog()?.length) {
+      } @else if (!botActivityLog().length) {
         <p class="empty-message" style="padding: 1rem 0;">No bot trading activity found.</p>
       } @else {
         <div class="table-container activity-table-container">
