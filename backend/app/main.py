@@ -150,7 +150,6 @@ async def get_current_user(
 def on_startup():
     setup_database()
 
-
 # --- FastApi Endpoints ---
 @app.post("/api/register")
 def register_user( user: User):
