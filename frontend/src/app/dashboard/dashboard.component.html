@@ -1,4 +1,7 @@
 <div class="dashboard-container">
     <sidebar></sidebar>
-    <main-content class="main-content-container" [userName]="userName()"></main-content>
+    <main class="main-content-container">
+        <router-outlet></router-outlet>
+    </main>
+    <!-- <main-content class="main-content-container" [userName]="userName()"></main-content> -->
 </div>

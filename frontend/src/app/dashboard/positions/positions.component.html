@@ -1,0 +1,55 @@
+<div class="positions-container">
+    <h1 class="page-title">My Positions</h1>
+
+    @if (isLoading()) {
+        <div class="loading-message">
+            <p>Loading positions...</p>
+            <mat-spinner></mat-spinner>
+        </div>
+    } @else if (error()) {
+        <div class="error-message">
+            <p>Error loading positions: {{ error() }}</p>
+        </div>
+    } @else if (!holdings()?.length) {
+        <div class="empty-message">
+            <p>You currently don't hold any positions.</p>
+            <a routerLink="/dashboard/trading" class="btn btn-primary" style="margin-top: 1-rem;">
+                Start Trading
+            </a>
+        </div>
+    } @else {
+        <div class="table-container">
+            <table class="data-table positions-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Ticker</th>
+                        <th scope="col">Quantity</th>
+                        <th scope="col">Avg. Cost</th>
+                        <th scope="col">Current Price</th>
+                        <th scope="col">Total Value</th>
+                        <th scope="col">Total P/L</th>
+                        <th scope="col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (holding of holdings(); track holding.ticker) {
+                        <tr>
+                            <td>{{holding.ticker}}</td>
+                            <td>{{holding.quantity}}</td>
+                            <td>{{holding.purchase_price.toFixed(2)}}</td>
+                            <td>{{holding.current_price.toFixed(2)}}</td>
+                            <td>{{holding.total_value.toFixed(2)}}</td>
+                            <td [ngClass]="holding.total_pl >= 0 ? 'positive_change' : 'negative_change'">
+                                {{ holding.total_pl >= 0 ? '+' : '' }}${{ holding.total_pl.toFixed(2) }}
+                                ({{ holding.total_pl_pct.toFixed(2) }}%)
+                            </td>
+                            <td>
+                                <a [routerLink]="['/dashboard/trading']" [queryParams]="{ ticker: holding.ticker }" class="btn-trade">Trade</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
