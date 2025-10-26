@@ -1,106 +1,206 @@
-<main class="main-content">
-<!-- Top Bar -->
-<header class="top-bar">
-    <h1 class="text-3xl font-bold text-gray-100">Dashboard</h1>
-    <div class="flex items-center space-x-4">
-    <div class="relative">
-        <input
-        type="text"
-        placeholder="Search stocks..."
-        class="search-input"
-        />
-        <svg class="search-icon" fill="currentColor" viewBox="0 0 20 20">
-        <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"></path>
-        </svg>
-    </div>
-    <button class="icon-button">
-        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-        <path d="M10 2a8 8 0 100 16 8 8 0 000-16zM6.5 9a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM10 12.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5zM13.5 9a1.5 1.5 0 100 3 1.5 1.5 0 000-3z" clip-rule="evenodd"></path>
-        </svg>
-    </button>
-    <div class="flex items-center space-x-2">
-        <button (click)="logOut()">
-            <p> Click me </p>
-            <img class="user-avatar" [src]="'https://placehold.co/100x100/2f534f/ffffff?text=' + userName[0]" alt="User Avatar">
-        </button>
-        <span class="text-sm font-medium text-gray-300">{{ this.userName}}</span>
-    </div>
-    </div>
-</header>
+<div class="homepage-container">
+    <header class="top-bar">
+        <div class="greeting-group">
+            <h1 class="page-title">Welcome Back, {{ userName() }}!</h1>
+            <p class="page-subtitle">Here's your dashboard overview for today.</p>
+        </div>
 
-<!-- Dashboard Grid -->
-<div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-    <!-- The main chart card -->
-    <div class="md:col-span-2 md:row-span-2 bg-gray-900 rounded-2xl p-6 shadow-lg">
-    <div class="flex justify-between items-center mb-4">
-        <h2 class="text-xl font-semibold text-gray-100">Live Chart - {{ticker}}</h2>
-        <div class="flex items-center space-x-2 text-sm text-gray-400">
-        <span class="px-2 py-1 rounded-full bg-gray-800 cursor-pointer">1D</span>
-        <span class="px-2 py-1 rounded-full bg-gray-800 cursor-pointer">1W</span>
-        <span class="px-2 py-1 rounded-full bg-gray-800 cursor-pointer">1M</span>
-        <span class="px-2 py-1 rounded-full bg-gray-800 cursor-pointer">1Y</span>
-        </div>
-    </div>
-    <!-- Placeholder for chart -->
-    <div class="bg-gray-800 rounded-lg h-80 flex items-center justify-center">
-        <span class="text-gray-500 text-lg">Chart Component Here</span>
-    </div>
-    </div>
+        <div class="actions-group">
+            <div class="search-group">
+                <input type="text" placeholder="Search stocks..." class="search-input" />
+                <svg class="search-icon" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"></path>
+                </svg>
+            </div>
 
-    <!-- Portfolio Summary Card -->
-    <div class="bg-gray-900 rounded-2xl p-6 shadow-lg">
-    <div>
-        <h2 class="text-lg font-semibold text-gray-100 mb-2">Portfolio Summary</h2>
-        <div class="flex justify-between items-center mb-4">
-        <div class="relative w-24 h-24">
-            <svg class="w-full h-full transform -rotate-90">
-            <circle class="text-gray-800" stroke-width="8" stroke="currentColor" fill="transparent" r="40" cx="48" cy="48"></circle>
-            <circle class="text-green-500" stroke-width="8" stroke="currentColor" stroke-linecap="round" fill="transparent" r="40" cx="48" cy="48" [attr.stroke-dasharray]="'251.2'" [attr.stroke-dashoffset]="portfolioProgress()"></circle>
-            </svg>
-            <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-lg font-bold">{{portfolioChange()}}%</span>
+            <div class="user-menu" (mouseleave)="closeUserMenu()">
+                <button class="user-menu-button" (click)="toggleUserMenu()">
+                    <img class="user-avatar"
+                        [src]="'https://placehold.co/100x100/1E293B/94A3B8?text=' + (userName()?.[0] || 'U')"
+                        alt="User Avatar">
+                    <span class="user-name">{{ userName() }}</span>
+                    <svg class="user-menu-chevron" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
+                </button>
+                
+                @if (isUserMenuOpen()) {
+                    <div class="user-menu-dropdown">
+                        <a routerLink="/dashboard/settings" class="dropdown-link" (click)="closeUserMenu()">Profile & Settings</a>
+                        <a routerLink="/login" class="dropdown-link dropdown-link-danger" (click)="closeUserMenu(); logOut()">Logout</a>
+                    </div>
+                }
+            </div>
         </div>
-        <div>
-            <div class="text-gray-400 text-sm">Current Value</div>
-            <div class="text-2xl font-bold text-gray-100">${{portfolioValue()}}</div>
-            <div class="text-sm font-medium text-green-500">+{{portfolioChange()}}%</div>
-        </div>
-        </div>
-    </div>
-    </div>
+    </header>
 
-    <!-- Bot Status Card -->
-    <div class="bg-gray-900 rounded-2xl p-6 shadow-lg">
-    <h2 class="text-lg font-semibold text-gray-100 mb-2">Bot Status</h2>
-    <div class="flex flex-col space-y-2">
-        <div class="flex items-center space-x-2">
-        <span class="relative flex h-3 w-3">
-            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-            <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-        </span>
-        <span class="text-green-500 font-medium">Active</span>
-        </div>
-        <div class="text-gray-400 text-sm">Bot is currently running on the server.</div>
-    </div>
-    <div class="mt-4">
-        <h3 class="text-sm font-semibold text-gray-300">Recent Activity</h3>
-        <ul class="text-sm text-gray-500 mt-1">
-        <li>Bought AAPL at $175.40</li>
-        <li>Sold MSFT at $320.10</li>
-        <li>Bought TSLA at $250.00</li>
-        </ul>
-    </div>
-    </div>
+    <div class="dashboard-grid">
 
-    <!-- Key Metrics Card -->
-    <div class="bg-gray-900 rounded-2xl p-6 shadow-lg md:col-span-2">
-    <h2 class="text-lg font-semibold text-gray-100 mb-2">Key Metrics</h2>
-    <div class="grid grid-cols-2 gap-4 text-gray-400">
-        <div>Market Cap: <span class="text-gray-200 font-bold">${{marketCap()}}</span></div>
-        <div>P/E Ratio: <span class="text-gray-200 font-bold">{{peRatio()}}</span></div>
-        <div>Volume: <span class="text-gray-200 font-bold">{{volume()}}</span></div>
-        <div>Dividend Yield: <span class="text-gray-200 font-bold">{{dividendYield()}}%</span></div>
-    </div>
-    </div>
+        <div class="card card-span-2 chart-card">
+            <h2 class="card-title">Live Chart - {{ticker}}</h2>
+            <div class="chart-controls">
+                <span class="chart-time-span">1D</span>
+                <span class="chart-time-span">1W</span>
+                <span class="chart-time-span">1M</span>
+                <span class="chart-time-span">1Y</span>
+            </div>
+            <div class="chart-component-placeholder">
+                <span class="chart-text">Chart Component Here</span>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2 class="card-title">Balances</h2>
+            <div class="balance-list">
+                <div class="balance-item">
+                    <div class="balance-label">Cash Balance</div>
+                    <div class="balance-value">${{ userBalance().toFixed(2) }}</div>
+                </div>
+                <div class="balance-item">
+                    <div class="balance-label">Portfolio Value</div>
+                    <div class="balance-value">${{ portfolioValue().toFixed(2) }}</div>
+                </div>
+                <div class="balance-item">
+                    <div class="balance-label">Total P/L</div>
+                    <div class="balance-value" [ngClass]="totalPortfolioPL() >= 0 ? 'positive-change' : 'negative-change'">
+                        {{ totalPortfolioPL() >= 0 ? '+' : '' }}${{ totalPortfolioPL().toFixed(2) }} 
+                        ({{ totalPortfolioPLPct().toFixed(2) }}%)
+                    </div>
+                </div>
+            </div>
+            <button class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+                Deposit Funds
+            </button>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title">Portfolio Snapshot</h2>
+            <div class="portfolio-summary-content">
+                <div class="portfolio-chart">
+                    <div class="chart-placeholder">
+                        <span class="chart-text" [ngClass]="totalPortfolioPLPct() >= 0 ? 'positive-change' : 'negative-change'">
+                            {{ totalPortfolioPLPct() >= 0 ? '+' : '' }}{{ totalPortfolioPLPct().toFixed(1) }}%
+                        </span>
+                    </div>
+                </div>
+                <div class="portfolio-summary-details">
+                    <div class="summary-item">
+                        <span class="summary-label">Total Holdings</span>
+                        <span class="summary-value">{{ portfolioHoldings().length }}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Cost Basis</span>
+                        <span class="summary-value">${{ portfolioCostBasis().toFixed(2) }}</span>
+                    </div>
+                    <a routerLink="/dashboard/positions" class="summary-link">View All Positions</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title">Market Overview</h2>
+            <ul class="market-list">
+                @for (index of marketIndices(); track index.name) {
+                    <li class="market-item">
+                        <span class="item-name">{{ index.name }}</span>
+                        <div class="item-values">
+                            <span class="item-value">{{ index.value.toFixed(2) }}</span>
+                            <span class="item-change" [ngClass]="index.change >= 0 ? 'positive-change' : 'negative-change'">
+                                {{ index.change >= 0 ? '+' : '' }}{{ index.change.toFixed(2) }} ({{ index.changePct.toFixed(2) }}%)
+                            </span>
+                        </div>
+                    </li>
+                }
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title">Trending Stocks</h2>
+            <ul class="market-list">
+                @for (stock of trendingStocks(); track stock.ticker) {
+                    <li class="market-item">
+                        <span class="item-name">{{ stock.ticker }}</span>
+                        <div class="item-values">
+                            <span class="item-value">${{ stock.price.toFixed(2) }}</span>
+                            <span class="item-change" [ngClass]="stock.changePct >= 0 ? 'positive-change' : 'negative-change'">
+                                {{ stock.changePct >= 0 ? '+' : '' }}{{ stock.changePct.toFixed(2) }}%
+                            </span>
+                        </div>
+                    </li>
+                } @empty {
+                    <p class="empty-list-message">Could not load trending data.</p>
+                }
+            </ul>
+        </div>
+
+
+        <div class="card card-span-2">
+            <h2 class="card-title">Recent Activity</h2>
+            @if (!recentActivity()?.length) {
+                <p class="empty-list-message" style="padding: 1rem 0;">No recent activity found.</p>
+            } @else {
+                <ul class="activity-list">
+                    @for (activity of recentActivity(); track $index) {
+                        <li class="activity-item">
+                            <div class="activity-info">
+                                <span class="activity-action" [class.action-buy]="activity.action === 'BUY'" [class.action-sell]="activity.action === 'SELL'">
+                                    {{ activity.action }}
+                                </span>
+                                <span class="activity-details">
+                                    {{ activity.quantity }} {{ activity.ticker }} @ ${{ activity.price.toFixed(2) }}
+                                </span>
+                            </div>
+                            <div class="activity-meta">
+                                @if (activity.is_bot_trade) {
+                                    <span class="activity-type">Bot</span>
+                                }
+                                <span class="activity-timestamp">{{ activity.timestamp | date:'short' }}</span>
+                            </div>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+
+        <div class="card card-span-2">
+            <h2 class="card-title">Key Metrics</h2>
+            <div class="key-metrics-grid">
+                <div class="metric-item">
+                    <span class="metric-label">Market Cap:</span> 
+                    <span class="metric-value">${{marketCap()}}</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">P/E Ratio:</span> 
+                    <span class="metric-value">{{peRatio()}}</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">Volume:</span> 
+                    <span class="metric-value">{{volume()}}</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">Dividend Yield:</span> 
+                    <span class="metric-value">{{dividendYield()}}%</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card card-span-2">
+            <h2 class="card-title">Bot Status</h2>
+            <div class="bot-status-content">
+                @if (isBotActive()) {
+                    <div class="status-indicator active">
+                        <span class="status-dot"></span>
+                        <span class="status-text">Bot is Active</span>
+                    </div>
+                    <p class="status-description">The bot is actively monitoring the market for trading opportunities.</p>
+                } @else {
+                    <div class="status-indicator">
+                        <span class="status-dot"></span>
+                        <span class="status-text">Bot is Inactive</span>
+                    </div>
+                    <p class="status-description">The bot is currently disabled and not executing any trades.</p>
+                }
+                <a routerLink="/dashboard/bot-management" class="btn btn-info">Manage Bot</a>
+            </div>
+        </div>
+
+    </div> 
 </div>
-<button matButton height="30px" width="70px" (click)="deposit()">Deposit</button>
-</main>

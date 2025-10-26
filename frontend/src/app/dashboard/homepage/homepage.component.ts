@@ -1,69 +1,128 @@
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, signal, OnInit, Injectable, Input, inject, PLATFORM_ID } from '@angular/core';
-import { MatGridListModule } from '@angular/material/grid-list';
-import { HttpClient } from '@angular/common/http';
-import { MatButtonModule } from '@angular/material/button';
-import { AuthService } from '../../auth.service';
-import { NavigationEnd, Router } from '@angular/router';
+import { RouterModule, Router, NavigationEnd } from '@angular/router'; // Added RouterModule and Router for navigation/link
+import { HttpClient } from '@angular/common/http'; // Added HttpClient for API calls
+import { MatGridListModule } from '@angular/material/grid-list'; // Preserved old imports
+import { MatButtonModule } from '@angular/material/button'; // Preserved old imports
+// Assuming AuthService is available in the project structure
+import { AuthService } from '../../auth.service'; 
 
+// Define interface for Holding data (Same as old, matched new structure)
 interface Holding {
     ticker: string;
     quantity: number;
     purchase_price: number;
-} 
+}
 
+// Define interface for Activity data (Merged: Used new fields/types, added old file's implicit field)
 interface Activity {
-    action: string;
+    action: 'BUY' | 'SELL' | string; // Keep string to allow non-enum actions from API
     ticker: string;
-    quantity: string;
+    quantity: number; // Changed to number to match new file and for calculation ease
     price: number;
     is_bot_trade: boolean;
+    timestamp?: string; // Made optional as old Activity interface didn't have it
+}
+
+// Interface for Market data (From new file)
+interface MarketIndex {
+    name: string;
+    value: number;
+    change: number;
+    changePct: number;
+}
+
+// Interface for Trending data (From new file)
+interface TrendingStock {
+    ticker: string;
+    price: number;
+    changePct: number;
 }
 
 @Component({
-    selector: 'main-content',
+    selector: 'app-homepage', // Use the new selector
     standalone: true,
     imports: [
         CommonModule,
-        MatGridListModule,
-        MatButtonModule,
+        RouterModule, // For routerLink
+        MatGridListModule, // Preserved old import
+        MatButtonModule, // Preserved old import
     ],
     templateUrl: './homepage.component.html',
     styleUrls: ['./homepage.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-
 })
 export class HomepageComponent implements OnInit {
 
+    // --- Injected Dependencies (From previous file) ---
     private apiUrl = 'http://localhost:8000/api'; 
     private router = inject(Router);
     private platformId = inject(PLATFORM_ID);
+    
+    // Injected into constructor from previous file
+    constructor(private http: HttpClient, private authService: AuthService) {} 
 
-    public portfolioValue = signal(0);
-    public userBalance = signal(0);
-    public portfolioHoldings = signal<Holding[]>([]);
+    // --- Component State/Data ---
 
+    // USER INFO (Merged: Preserved @Input for compatibility, but also using signal)
+    userName = signal('Dylan'); // From new file (Used in HTML now)
+    userBalance = signal(10000.00); // Merged: Use new initial value, but old signal name
+
+    // PORTFOLIO DATA (Merged: Use new initial data structure, but old signal names)
+    portfolioHoldings = signal<Holding[]>([
+        { ticker: 'AAPL', quantity: 10, purchase_price: 150.00 },
+        { ticker: 'MSFT', quantity: 5, purchase_price: 300.00 },
+    ]);
+    portfolioValue = signal(0); // From old file (will be updated by fetchPortfolio)
+
+    // LIVE DATA (From new file)
+    currentPrices = signal(new Map<string, number>([
+        ['AAPL', 175.00],
+        ['MSFT', 320.00],
+    ]));
+    
+    marketIndices = signal<MarketIndex[]>([
+        { name: 'S&P 500', value: 4500.50, change: 15.20, changePct: 0.34 },
+        { name: 'NASDAQ', value: 14000.75, change: -5.10, changePct: -0.04 },
+        { name: 'DOW JONES', value: 35000.00, change: 50.00, changePct: 0.14 },
+    ]);
+    
+    trendingStocks = signal<TrendingStock[]>([
+        { ticker: 'GME', price: 25.50, changePct: 10.5 },
+        { ticker: 'AMC', price: 5.80, changePct: 8.2 },
+        { ticker: 'NVDA', price: 950.00, changePct: 2.1 },
+    ]);
+
+    // METRICS (From previous file)
     public ticker = "AAPL";
     public marketCap = signal(0);
     public peRatio = signal(0);
     public dividendYield = signal(0);
     public volume = signal(0);
 
-    public botStatus = signal('Idle');
-    public botActivity = signal<Activity[]>([]);
+    // ACTIVITY / BOT STATUS (Merged: Use new signal for activity, but old signal for bot status)
+    recentActivity = signal<Activity[]>([
+        { action: 'BUY', ticker: 'AAPL', quantity: 10, price: 150.00, is_bot_trade: false, timestamp: '2025-10-25T10:30:00Z' },
+        { action: 'BUY', ticker: 'MSFT', quantity: 5, price: 300.00, is_bot_trade: false, timestamp: '2025-10-24T14:15:00Z' },
+        { action: 'SELL', ticker: 'TSLA', quantity: 2, price: 250.00, is_bot_trade: true, timestamp: '2025-10-24T09:05:00Z' },
+    ]);
+    botActivity = signal<Activity[]>([]); // Preserved old signal
+    isBotActive = signal(true); // From new file (used in HTML)
+    botStatus = signal('Idle'); // From old file (used in getBotDecision)
 
-    @Input() userName: string = 'User';
+    // --- Computed Values ---
 
-
-    // portfolioPercentage = computed(() => {
-    //     const target = 50000;
-    //     return Math.floor((this.portfolioValue() / target) * 100);
-    // });
-    portfolioProgress = computed(() => {
-        const circumference = 251.2;
-        return circumference - (circumference * this.portfolioChange()) / 100;
+    // New file's Portfolio Value (Uses currentPrices) - Renamed to distinguish from old signal
+    portfolioValueLive = computed(() => {
+        const prices = this.currentPrices();
+        return this.portfolioHoldings().reduce((acc, holding) => {
+            // Use current price if available, otherwise use purchase price
+            const currentPrice = prices.get(holding.ticker) || holding.purchase_price; 
+            return acc + (holding.quantity * currentPrice);
+        }, 0);
     });
 
+    // Old file's Portfolio Change (Needed for old HTML's gauge)
     portfolioChange = computed(() => {
         const totalValue = this.portfolioValue();
         const initialValue = this.portfolioHoldings().reduce((acc, holding) => acc + (holding.quantity * holding.purchase_price), 0);
@@ -71,8 +130,39 @@ export class HomepageComponent implements OnInit {
         return ((totalValue - initialValue) / initialValue) * 100;
     })
 
-    constructor(private http: HttpClient, private authService: AuthService) {}
+    // Old file's Portfolio Progress (Needed for old HTML's gauge)
+    portfolioProgress = computed(() => {
+        const circumference = 251.2;
+        return circumference - (circumference * this.portfolioChange()) / 100;
+    });
 
+    // New file's Portfolio Cost Basis
+    portfolioCostBasis = computed(() => {
+        return this.portfolioHoldings().reduce((acc, holding) => acc + (holding.quantity * holding.purchase_price), 0);
+    });
+
+    // New file's Total P/L (Uses portfolioValueLive)
+    totalPortfolioPL = computed(() => {
+        return this.portfolioValueLive() - this.portfolioCostBasis();
+    });
+
+    // New file's Total P/L Percentage (Uses portfolioValueLive)
+    totalPortfolioPLPct = computed(() => {
+        const costBasis = this.portfolioCostBasis();
+        if (costBasis === 0) return 0;
+        return (this.totalPortfolioPL() / costBasis) * 100;
+    });
+
+    // --- Dropdown State and Methods (From new file) ---
+    isUserMenuOpen = signal(false);
+    toggleUserMenu(): void {
+        this.isUserMenuOpen.update(open => !open);
+    }
+    closeUserMenu(): void {
+        this.isUserMenuOpen.set(false);
+    }
+
+    // --- Lifecycle Hook (From previous file) ---
     ngOnInit(): void {
         if (isPlatformBrowser(this.platformId)) {
             this.fetchUserData();
@@ -82,12 +172,16 @@ export class HomepageComponent implements OnInit {
         }
     }
 
+    // --- API and Utility Methods (Preserved from previous file) ---
     fetchUserData(): void {
         const userId = this.authService.currentUserId();
         if (!userId) return;
         this.http.get<any>(`${this.apiUrl}/user/${userId}`, {withCredentials: true}).subscribe({
             next: (data) => {
                 this.userBalance.set(data.balance);
+                // Also update the @Input userName if it's dynamic
+                this.userName = data.name; 
+                this.userName.set(data.name);
             },
             error: (err) => console.error('Failed to fetch user data', err)
         });
@@ -100,7 +194,9 @@ export class HomepageComponent implements OnInit {
         this.http.get<Holding[]>(`${this.apiUrl}/holdings/${userId}`, {withCredentials: true}).subscribe({
             next: (data) => {
                 this.portfolioHoldings.set(data);
-                // Simple calculation for portfolio value (can be improved by fetching live prices for all holdings)
+                // This line from the old file calculates value based only on purchase_price, 
+                // which is now overridden by the portfolioValueLive computed property using currentPrices, 
+                // but kept for preservation.
                 const totalValue = data.reduce((acc, holding) => acc + (holding.quantity * holding.purchase_price), 0);
                 this.portfolioValue.set(totalValue);
             },
@@ -126,7 +222,11 @@ export class HomepageComponent implements OnInit {
         const userId = this.authService.currentUserId();
         if (!userId) return;
         this.http.get<Activity[]>(`${this.apiUrl}/activity/${userId}`, {withCredentials: true}).subscribe({
-            next: (data) => this.botActivity.set(data),
+            next: (data) => {
+                // Update both old and new activity signals (only new one is likely used in the merged HTML)
+                this.botActivity.set(data);
+                this.recentActivity.set(data);
+            },
             error: (err) => console.error('Failed to fetch activity', err)
         });
     }
@@ -171,8 +271,6 @@ export class HomepageComponent implements OnInit {
                 const decision = res.decision;
                 this.botStatus.set(`Decision: ${decision}`);
                 alert(`Bot has decided to: ${decision}`);
-                // Here you could add logic to automatically execute the trade
-                // For now, we just show the decision.
             },
             error: (err) => {
                 this.botStatus.set('Error!');
@@ -180,6 +278,7 @@ export class HomepageComponent implements OnInit {
             }
         });
     }
+    
     logOut(): void {
         console.log('Loggin out');
         this.http.post<any>(`${this.apiUrl}/logout`, {}, { withCredentials: true }).subscribe({
@@ -189,6 +288,8 @@ export class HomepageComponent implements OnInit {
             },
             error: (err) => {
                 console.log(err);
+                // Also navigate on error, assuming the backend might return 401/403 but the user should still proceed to login.
+                this.router.navigate(['/login']); 
             }
         })
     }
