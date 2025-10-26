@@ -40,7 +40,7 @@ interface TrendingStock {
 }
 
 @Component({
-    selector: 'app-homepage', // Use the new selector
+    selector: 'homepage', // Use the new selector
     standalone: true,
     imports: [
         CommonModule,
@@ -58,6 +58,8 @@ export class HomepageComponent implements OnInit {
     private apiUrl = 'http://localhost:8000/api'; 
     private router = inject(Router);
     private platformId = inject(PLATFORM_ID);
+
+
     
     // Injected into constructor from previous file
     constructor(private http: HttpClient, private authService: AuthService) {} 
@@ -65,7 +67,7 @@ export class HomepageComponent implements OnInit {
     // --- Component State/Data ---
 
     // USER INFO (Merged: Preserved @Input for compatibility, but also using signal)
-    userName = signal('Dylan'); // From new file (Used in HTML now)
+    userName = signal('User');
     userBalance = signal(10000.00); // Merged: Use new initial value, but old signal name
 
     // PORTFOLIO DATA (Merged: Use new initial data structure, but old signal names)
@@ -178,10 +180,9 @@ export class HomepageComponent implements OnInit {
         if (!userId) return;
         this.http.get<any>(`${this.apiUrl}/user/${userId}`, {withCredentials: true}).subscribe({
             next: (data) => {
+                console.log('Fetched user data:', data);
                 this.userBalance.set(data.balance);
-                // Also update the @Input userName if it's dynamic
-                this.userName = data.name; 
-                this.userName.set(data.name);
+                this.userName.set(data.first_name);
             },
             error: (err) => console.error('Failed to fetch user data', err)
         });
@@ -194,9 +195,6 @@ export class HomepageComponent implements OnInit {
         this.http.get<Holding[]>(`${this.apiUrl}/holdings/${userId}`, {withCredentials: true}).subscribe({
             next: (data) => {
                 this.portfolioHoldings.set(data);
-                // This line from the old file calculates value based only on purchase_price, 
-                // which is now overridden by the portfolioValueLive computed property using currentPrices, 
-                // but kept for preservation.
                 const totalValue = data.reduce((acc, holding) => acc + (holding.quantity * holding.purchase_price), 0);
                 this.portfolioValue.set(totalValue);
             },
@@ -288,7 +286,6 @@ export class HomepageComponent implements OnInit {
             },
             error: (err) => {
                 console.log(err);
-                // Also navigate on error, assuming the backend might return 401/403 but the user should still proceed to login.
                 this.router.navigate(['/login']); 
             }
         })
