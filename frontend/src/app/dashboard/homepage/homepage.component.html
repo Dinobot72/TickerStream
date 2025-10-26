@@ -1,13 +1,15 @@
 <div class="homepage-container">
     <header class="top-bar">
+        <!-- Greeting -->
         <div class="greeting-group">
             <h1 class="page-title">Welcome Back, {{ userName() }}!</h1>
             <p class="page-subtitle">Here's your dashboard overview for today.</p>
         </div>
 
+        <!-- Search and User Menu -->
         <div class="actions-group">
             <div class="search-group">
-                <input type="text" placeholder="Search stocks..." class="search-input" />
+                <input type="text" placeholder="Search" class="search-input" />
                 <svg class="search-icon" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"></path>
                 </svg>
@@ -32,21 +34,28 @@
         </div>
     </header>
 
+    <!-- Dashboard Content -->
     <div class="dashboard-grid">
 
+        <!-- Chart Component -->
         <div class="card card-span-2 chart-card">
-            <h2 class="card-title">Live Chart - {{ticker}}</h2>
-            <div class="chart-controls">
-                <span class="chart-time-span">1D</span>
-                <span class="chart-time-span">1W</span>
-                <span class="chart-time-span">1M</span>
-                <span class="chart-time-span">1Y</span>
-            </div>
+            <h2 class="chart-title">
+                <div>
+                    Live Chart
+                </div>
+                <div class="chart-controls">
+                    <span class="chart-time-span">1D</span>
+                    <span class="chart-time-span">1W</span>
+                    <span class="chart-time-span">1M</span>
+                    <span class="chart-time-span">1Y</span>
+                </div>
+            </h2>
             <div class="chart-component-placeholder">
                 <span class="chart-text">Chart Component Here</span>
             </div>
         </div>
         
+        <!-- Balances Component -->
         <div class="card">
             <h2 class="card-title">Balances</h2>
             <div class="balance-list">
@@ -66,11 +75,12 @@
                     </div>
                 </div>
             </div>
-            <button class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+            <button class="btn btn-primary" style="width: 100%; margin-top: 1rem;" (click)="deposit()">
                 Deposit Funds
             </button>
         </div>
 
+        <!-- Portfolio Snapshot Component -->
         <div class="card">
             <h2 class="card-title">Portfolio Snapshot</h2>
             <div class="portfolio-summary-content">
@@ -95,6 +105,7 @@
             </div>
         </div>
 
+        <!-- Market Overview Component -->
         <div class="card">
             <h2 class="card-title">Market Overview</h2>
             <ul class="market-list">
@@ -112,6 +123,7 @@
             </ul>
         </div>
 
+        <!-- Trending Stocks Component -->
         <div class="card">
             <h2 class="card-title">Trending Stocks</h2>
             <ul class="market-list">
@@ -131,7 +143,7 @@
             </ul>
         </div>
 
-
+        <!-- Recent Activity Component -->
         <div class="card card-span-2">
             <h2 class="card-title">Recent Activity</h2>
             @if (!recentActivity()?.length) {
@@ -160,6 +172,7 @@
             }
         </div>
 
+        <!-- Key Metrics Component -->
         <div class="card card-span-2">
             <h2 class="card-title">Key Metrics</h2>
             <div class="key-metrics-grid">
@@ -182,6 +195,7 @@
             </div>
         </div>
 
+        <!-- Bot Status Component -->
         <div class="card card-span-2">
             <h2 class="card-title">Bot Status</h2>
             <div class="bot-status-content">
