@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router'; // Import RouterModule for routerLink
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 // Define interface for Holding data
 interface Holding {
@@ -17,7 +18,7 @@ interface Holding {
 @Component({
   selector: 'app-positions',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, MatProgressSpinnerModule],
   templateUrl: './positions.component.html',
   styleUrls: ['./positions.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

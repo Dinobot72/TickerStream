@@ -1,0 +1,104 @@
+<div class="settings-container">
+  <h1 class="page-title">Settings & Profile</h1>
+
+  <div class="settings-grid">
+    <!-- User Profile Section -->
+    <div class="card">
+      <h2 class="card-title">User Profile</h2>
+      @if (isLoadingProfile()) {
+          <p class="loading-message" style="padding: 1rem 0;">Loading profile...</p>
+      } @else {
+          <form (submit)="updateProfile()">
+              <div class="form-grid">
+                  <!-- Username (Readonly) -->
+                  <div class="form-group form-span-2">
+                      <label for="username">Username</label>
+                      <input type="text" id="username" class="input-field" [value]="username()" readonly>
+                  </div>
+
+                  <!-- First Name -->
+                  <div class="form-group">
+                      <label for="firstName">First Name</label>
+                      <input type="text" id="firstName" class="input-field" [(ngModel)]="firstName" name="firstName" required>
+                  </div>
+
+                  <!-- Last Name -->
+                  <div class="form-group">
+                      <label for="lastName">Last Name</label>
+                      <input type="text" id="lastName" class="input-field" [(ngModel)]="lastName" name="lastName" required>
+                  </div>
+              </div>
+
+              @if (profileError()) {
+                  <div class="message-error">{{ profileError() }}</div>
+              }
+              @if (profileSuccess()) {
+                  <div class="message-success">{{ profileSuccess() }}</div>
+              }
+
+              <div class="form-actions">
+                  <button type="submit" class="btn btn-info">
+                      Update Profile
+                  </button>
+              </div>
+          </form>
+      }
+    </div>
+
+    <!-- Change Password Section -->
+    <div class="card">
+      <h2 class="card-title">Change Password</h2>
+        <form (submit)="changePassword()">
+            <div class="form-stack">
+                <div class="form-group">
+                    <label for="currentPassword">Current Password</label>
+                    <input type="password" id="currentPassword" class="input-field" [(ngModel)]="currentPassword" name="currentPassword" required autocomplete="current-password">
+                </div>
+                <div class="form-group">
+                    <label for="newPassword">New Password</label>
+                    <input type="password" id="newPassword" class="input-field" [(ngModel)]="newPassword" name="newPassword" required autocomplete="new-password">
+                </div>
+                  <div class="form-group">
+                    <label for="confirmPassword">Confirm New Password</label>
+                    <input type="password" id="confirmPassword" class="input-field" [(ngModel)]="confirmPassword" name="confirmPassword" required autocomplete="new-password">
+                </div>
+            </div>
+
+              @if (passwordError()) {
+                  <div class="message-error">{{ passwordError() }}</div>
+              }
+              @if (passwordSuccess()) {
+                  <div class="message-success">{{ passwordSuccess() }}</div>
+              }
+
+            <div class="form-actions">
+                  <button type="submit" [disabled]="isChangingPassword()" class="btn btn-info">
+                      {{ isChangingPassword() ? 'Changing...' : 'Change Password' }}
+                  </button>
+              </div>
+        </form>
+    </div>
+
+    <!-- Other Settings (Placeholder) -->
+    <div class="card card-span-2">
+      <h2 class="card-title">Application Preferences (Placeholder)</h2>
+      <form class="form-grid">
+          <div class="form-group">
+              <label for="theme">Theme</label>
+              <select id="theme" class="select-field" disabled>
+                  <option selected>Dark</option>
+                  <option>Light</option>
+              </select>
+          </div>
+          <div class="form-group notification-group">
+              <label>Notifications</label>
+              <label class="checkbox-label">
+                <input type="checkbox" class="checkbox" checked disabled>
+                <span>Enable Email Notifications</span>
+              </label>
+          </div>
+      </form>
+    </div>
+  </div>
+</div>
+

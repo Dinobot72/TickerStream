@@ -28,12 +28,12 @@ interface Activity {
         MatGridListModule,
         MatButtonModule,
     ],
-    templateUrl: './main-content.component.html',
-    styleUrls: ['./main-content.component.scss'],
+    templateUrl: './homepage.component.html',
+    styleUrls: ['./homepage.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
 
 })
-export class MainContentComponent implements OnInit {
+export class HomepageComponent implements OnInit {
 
     private apiUrl = 'http://localhost:8000/api'; 
     private router = inject(Router);

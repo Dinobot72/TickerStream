@@ -1,0 +1,106 @@
+<div class="bot-container">
+  <h1 class="page-title">Bot Management</h1>
+
+  <div class="bot-grid">
+    <!-- Bot Status & Control -->
+    <div class="card">
+      <h2 class="card-title">Status & Control</h2>
+      <div class="status-control">
+        <div class="status-info">
+          <div class="status-indicator" [class.active]="isBotActive()">
+              <span class="status-dot"></span>
+              <span class="status-text">{{ isBotActive() ? 'Active' : 'Inactive' }}</span>
+          </div>
+          <span class="status-message">{{ botStatusMessage() }}</span>
+        </div>
+        <button
+          (click)="toggleBotStatus()"
+          class="btn"
+          [class.btn-danger]="isBotActive()"
+          [class.btn-primary]="!isBotActive()">
+          {{ isBotActive() ? 'Stop Bot' : 'Start Bot' }}
+        </button>
+      </div>
+      <p class="last-action-time">Last action: {{ lastActionTime() | date:'short' }}</p>
+    </div>
+
+    <!-- Bot Performance -->
+    <div class="card card-span-2">
+        <h2 class="card-title">Performance Overview</h2>
+        <div class="performance-grid">
+            <div class="perf-item">
+                <div class="perf-label">Total P/L</div>
+                <div class="perf-value" [ngClass]="botTotalPL() >= 0 ? 'positive-change' : 'negative-change'">
+                    {{ botTotalPL() >= 0 ? '+' : '' }}${{ botTotalPL().toFixed(2) }}
+                </div>
+            </div>
+            <div class="perf-item">
+                <div class="perf-label">Win Rate</div>
+                <div class="perf-value perf-value-info">{{ botWinRate() }}%</div>
+            </div>
+            <div class="perf-item">
+                <div class="perf-label">Trades Executed</div>
+                <div class="perf-value">{{ botTradesCount() }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Configuration (Placeholder) -->
+    <div class="card card-span-3">
+      <h2 class="card-title">Configuration (Placeholder)</h2>
+      <form class="config-form">
+          <div class="form-group">
+              <label for="riskLevel">Risk Level</label>
+              <select id="riskLevel" class="select-field" [value]="riskLevel()" disabled>
+                  <option>Low</option>
+                  <option>Medium</option>
+                  <option>High</option>
+              </select>
+          </div>
+          <div class="form-group">
+              <label for="allowedTickers">Allowed Tickers (comma-separated)</label>
+              <input type="text" id="allowedTickers" class="input-field" [value]="allowedTickers()" disabled>
+          </div>
+          <button type="button" class="btn btn-info" disabled>Save Configuration</button>
+      </form>
+    </div>
+
+    <!-- Bot Activity Log -->
+    <div class="card card-span-3">
+      <h2 class="card-title">Bot Trade Log</h2>
+      @if (isLoadingActivity()) {
+        <p class="loading-message" style="padding: 1rem 0;">Loading activity...</p>
+      } @else if (activityError()) {
+        <p class="error-message" style="padding: 1rem 0;">{{ activityError() }}</p>
+      } @else if (!botActivityLog()?.length) {
+        <p class="empty-message" style="padding: 1rem 0;">No bot trading activity found.</p>
+      } @else {
+        <div class="table-container activity-table-container">
+          <table class="data-table activity-table">
+            <thead>
+              <tr>
+                <th>Action</th>
+                <th>Ticker</th>
+                <th>Quantity</th>
+                <th>Price</th>
+                <th>Timestamp</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (activity of botActivityLog(); track $index) {
+                <tr>
+                  <td [ngClass]="activity.action === 'BUY' ? 'positive-change' : 'negative-change'">{{ activity.action }}</td>
+                  <td>{{ activity.ticker }}</td>
+                  <td class="text-muted">{{ activity.quantity }}</td>
+                  <td class="text-muted">${{ activity.price.toFixed(2) }}</td>
+                  <td class="text-muted">{{ activity.timestamp | date:'short' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  </div>
+</div>
+
