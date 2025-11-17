@@ -6,6 +6,8 @@ import { MatGridListModule } from '@angular/material/grid-list'; // Preserved ol
 import { MatButtonModule } from '@angular/material/button'; // Preserved old imports
 // Assuming AuthService is available in the project structure
 import { AuthService } from '../../auth.service'; 
+import { BotStatusService } from '../../services/bot-status.service';
+import { Observable } from 'rxjs';
 
 // Define interface for Holding data (Same as old, matched new structure)
 interface Holding {
@@ -58,11 +60,18 @@ export class HomepageComponent implements OnInit {
     private apiUrl = 'http://localhost:8000/api'; 
     private router = inject(Router);
     private platformId = inject(PLATFORM_ID);
+    isBotActive: Observable<boolean>;
 
 
     
     // Injected into constructor from previous file
-    constructor(private http: HttpClient, private authService: AuthService) {} 
+    constructor(
+        private http: HttpClient,
+        private authService: AuthService,
+        private botStatusService: BotStatusService
+    ) {
+        this.isBotActive = this.botStatusService.botStatus$
+    } 
 
     // --- Component State/Data ---
 
@@ -109,7 +118,6 @@ export class HomepageComponent implements OnInit {
         { action: 'SELL', ticker: 'TSLA', quantity: 2, price: 250.00, is_bot_trade: true, timestamp: '2025-10-24T09:05:00Z' },
     ]);
     botActivity = signal<Activity[]>([]); // Preserved old signal
-    isBotActive = signal(true); // From new file (used in HTML)
     botStatus = signal('Idle'); // From old file (used in getBotDecision)
 
     // --- Computed Values ---

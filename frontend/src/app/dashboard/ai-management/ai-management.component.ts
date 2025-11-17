@@ -2,7 +2,9 @@ import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@ang
 import { CommonModule, CurrencyPipe, DatePipe, PercentPipe } from '@angular/common';
 import { AuthService } from '../../auth.service';
 import { HttpClient } from '@angular/common/http';
-import { catchError, finalize, map, of, tap } from 'rxjs';
+import { catchError, finalize, map, of, tap, Observable } from 'rxjs';
+import { BotStatusService } from '../../services/bot-status.service';
+
 
 interface Activity {
   action: 'BUY' | 'SELL';
@@ -38,7 +40,7 @@ export class AiManagementComponent implements OnInit {
   private apiUrl = 'http://localhost:8000/api';
 
   // --- Bot Status ---
-  isBotActive = signal(false);
+  isBotActive: Observable<boolean>;
   botStatusMessage = signal('Fetching status...');
   lastActionTime = signal<string | null>(null); // Track last bot action time
   isUpdatingStatus = signal(false);
@@ -56,6 +58,11 @@ export class AiManagementComponent implements OnInit {
   // --- Configuration (Placeholders - TODO: fetch/update via API if needed) ---
   riskLevel = signal<'Low' | 'Medium' | 'High'>('Medium');
   allowedTickers = signal('AAPL, MSFT, GOOGL');
+
+  constructor(private botStatusService: BotStatusService
+    ) {
+      this.isBotActive = this.botStatusService.botStatus$
+    } 
 
 
   ngOnInit(): void {

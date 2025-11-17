@@ -145,76 +145,48 @@
 
         <!-- Recent Activity Component -->
         <div class="card card-span-2">
-            <h2 class="card-title">Recent Activity</h2>
-            @if (!recentActivity()?.length) {
-                <p class="empty-list-message" style="padding: 1rem 0;">No recent activity found.</p>
-            } @else {
-                <ul class="activity-list">
-                    @for (activity of recentActivity(); track $index) {
-                        <li class="activity-item">
-                            <div class="activity-info">
-                                <span class="activity-action" [class.action-buy]="activity.action === 'BUY'" [class.action-sell]="activity.action === 'SELL'">
-                                    {{ activity.action }}
-                                </span>
-                                <span class="activity-details">
-                                    {{ activity.quantity }} {{ activity.ticker }} @ ${{ activity.price.toFixed(2) }}
-                                </span>
-                            </div>
-                            <div class="activity-meta">
-                                @if (activity.is_bot_trade) {
-                                    <span class="activity-type">Bot</span>
-                                }
-                                <span class="activity-timestamp">{{ activity.timestamp | date:'short' }}</span>
-                            </div>
-                        </li>
+            <h2 class="card-title" style="display:flex; flex-direction: row;">
+                <span style="flex-grow: 1;">Recent Activity</span>
+                <a style="display: flex; flex-direction: row; align-items: center;">
+                    <span>Bot Status</span>
+                    @if (isBotActive) {
+                    <div class="status-indicator active" style="margin-left: 5px;">
+                        <span class="status-dot"></span>
+                    </div>
+                    } @else {<div class="status-indicator" style="margin-left: 5px;"><span class="status-dot"></span></div>}
+                </a>
+            </h2>
+            <div style="display: flex; flex-direction: row;">
+                <div style="flex-grow: 1;">
+                    @if (!recentActivity()?.length) {
+                        <p class="empty-list-message" style="padding: 1rem 0;">No recent activity found.</p>
+                    } @else {
+                        <ul class="activity-list">
+                            @for (activity of recentActivity(); track $index) {
+                                <li class="activity-item">
+                                    <div class="activity-info">
+                                        <span class="activity-action" [class.action-buy]="activity.action === 'BUY'" [class.action-sell]="activity.action === 'SELL'">
+                                            {{ activity.action }}
+                                        </span>
+                                        <span class="activity-details">
+                                            {{ activity.quantity }} {{ activity.ticker }} @ ${{ activity.price.toFixed(2) }}
+                                        </span>
+                                    </div>
+                                    <div class="activity-meta">
+                                        @if (activity.is_bot_trade) {
+                                            <span class="activity-type">Bot</span>
+                                        }
+                                        <span class="activity-timestamp">{{ activity.timestamp | date:'short' }}</span>
+                                    </div>
+                                </li>
+                            }
+                        </ul>
                     }
-                </ul>
-            }
-        </div>
-
-        <!-- Key Metrics Component -->
-        <div class="card card-span-2">
-            <h2 class="card-title">Key Metrics</h2>
-            <div class="key-metrics-grid">
-                <div class="metric-item">
-                    <span class="metric-label">Market Cap:</span> 
-                    <span class="metric-value">${{marketCap()}}</span>
                 </div>
-                <div class="metric-item">
-                    <span class="metric-label">P/E Ratio:</span> 
-                    <span class="metric-value">{{peRatio()}}</span>
-                </div>
-                <div class="metric-item">
-                    <span class="metric-label">Volume:</span> 
-                    <span class="metric-value">{{volume()}}</span>
-                </div>
-                <div class="metric-item">
-                    <span class="metric-label">Dividend Yield:</span> 
-                    <span class="metric-value">{{dividendYield()}}%</span>
+                <div style="height: 100%; align-content: baseline;">
+                    <a routerLink="/dashboard/ai-management" class="btn btn-info" >Manage Bot</a>
                 </div>
             </div>
         </div>
-
-        <!-- Bot Status Component -->
-        <div class="card card-span-2">
-            <h2 class="card-title">Bot Status</h2>
-            <div class="bot-status-content">
-                @if (isBotActive()) {
-                    <div class="status-indicator active">
-                        <span class="status-dot"></span>
-                        <span class="status-text">Bot is Active</span>
-                    </div>
-                    <p class="status-description">The bot is actively monitoring the market for trading opportunities.</p>
-                } @else {
-                    <div class="status-indicator">
-                        <span class="status-dot"></span>
-                        <span class="status-text">Bot is Inactive</span>
-                    </div>
-                    <p class="status-description">The bot is currently disabled and not executing any trades.</p>
-                }
-                <a routerLink="/dashboard/bot-management" class="btn btn-info">Manage Bot</a>
-            </div>
-        </div>
-
     </div> 
 </div>
