@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit, Signal, signal } from '@angular/core';
 import { CommonModule, CurrencyPipe, DatePipe, PercentPipe } from '@angular/common';
 import { AuthService } from '../../auth.service';
 import { HttpClient } from '@angular/common/http';
@@ -40,7 +40,8 @@ export class AiManagementComponent implements OnInit {
   private apiUrl = 'http://localhost:8000/api';
 
   // --- Bot Status ---
-  isBotActive: Observable<boolean>;
+  // isBotActive: Observable<boolean>;
+  isBotActive = signal(false);
   botStatusMessage = signal('Fetching status...');
   lastActionTime = signal<string | null>(null); // Track last bot action time
   isUpdatingStatus = signal(false);
@@ -61,7 +62,7 @@ export class AiManagementComponent implements OnInit {
 
   constructor(private botStatusService: BotStatusService
     ) {
-      this.isBotActive = this.botStatusService.botStatus$
+      // this.isBotActive = this.botStatusService.botStatus$
     } 
 
 
