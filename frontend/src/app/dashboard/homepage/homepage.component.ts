@@ -7,7 +7,7 @@ import { MatButtonModule } from '@angular/material/button'; // Preserved old imp
 // Assuming AuthService is available in the project structure
 import { AuthService } from '../../auth.service'; 
 import { BotStatusService } from '../../services/bot-status.service';
-import { Observable } from 'rxjs';
+import { catchError, forkJoin, map, Observable, of, switchMap } from 'rxjs';
 
 // Define interface for Holding data (Same as old, matched new structure)
 interface Holding {
@@ -200,16 +200,64 @@ export class HomepageComponent implements OnInit {
         const userId = this.authService.currentUserId();
         if (!userId) return;
 
-        this.http.get<Holding[]>(`${this.apiUrl}/holdings/${userId}`, {withCredentials: true}).subscribe({
-            next: (data) => {
-                this.portfolioHoldings.set(data);
-                const totalValue = data.reduce((acc, holding) => acc + (holding.quantity * holding.purchase_price), 0);
-                this.portfolioValue.set(totalValue);
-            },
-            error: (err) => {
-                console.error('Failed to fetch portfolio', err);
-            }
-        })
+        this.http.get<Holding[]>(`${this.apiUrl}/holdings/${userId}`, { withCredentials: true })
+            .pipe(
+                switchMap((holdings: Holding[]) => {
+                    // 1. Handle empty portfolio
+                    if (!holdings || holdings.length === 0) {
+                        return of({ holdings: [], prices: new Map<string, number>() });
+                    }
+
+                    // 2. Get unique tickers
+                    const uniqueTickers = [...new Set(holdings.map(h => h.ticker))];
+
+                    // 3. Request prices using the /stock/ endpoint (from your first snippet)
+                    const priceRequests = uniqueTickers.map(ticker =>
+                        this.http.get<any>(`${this.apiUrl}/stock/${ticker}`, { withCredentials: true }).pipe(
+                            map(response => {
+                                // Match the field 'latestPrice' from your first snippet
+                                const price = response?.latestPrice ?? 0; 
+                                return { ticker, price };
+                            }),
+                            catchError(err => {
+                                console.error(`Failed to fetch price for ${ticker}`, err);
+                                return of({ ticker, price: 0 }); // Default to 0 on error
+                            })
+                        )
+                    );
+
+                    // 4. Execute all requests in parallel
+                    return forkJoin(priceRequests).pipe(
+                        map(priceResults => {
+                            const prices = new Map<string, number>();
+                            priceResults.forEach(result => {
+                                if (result.price > 0) {
+                                    prices.set(result.ticker, result.price);
+                                }
+                            });
+                            return { holdings, prices };
+                        })
+                    );
+                }),
+                catchError(err => {
+                    console.error('Error fetching portfolio:', err);
+                    return of({ holdings: [], prices: new Map<string, number>() });
+                })
+            )
+            .subscribe(({ holdings, prices }) => {
+                // 5. Update signals
+                this.portfolioHoldings.set(holdings);
+                this.currentPrices.set(prices);
+                
+                // (Optional) Update the legacy signal for debugging
+                const totalVal = holdings.reduce((acc, h) => {
+                    const price = prices.get(h.ticker) ?? h.purchase_price;
+                    return acc + (h.quantity * price);
+                }, 0);
+                
+                console.log('Portfolio updated. Total Value:', totalVal);
+                this.portfolioValue.set(totalVal);
+            });
     }
 
     fetchMetrics(): void {
