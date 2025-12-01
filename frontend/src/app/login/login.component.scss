@@ -48,7 +48,7 @@
     pointer-events: none;
 }
 
-.ticker-row {
+::ng-deep .ticker-row {
     font-family: 'Roboto Mono', monospace;
     position: absolute;
     white-space: nowrap;
@@ -56,15 +56,9 @@
     color: rgba(156, 163, 175, 0.2);
     animation: scrollTicker 60s linear infinite; // Animation defined globally below or in styles.scss
 
-    span {
-        margin: 0 1rem;
-    }
-    .gain {
-        color: rgba(0, 230, 118, 0.3);
-    }
-    .loss {
-        color: rgba(255, 82, 82, 0.3);
-    }
+    span { margin: 0 1rem };
+    .gain { color: rgba(0, 230, 118, 0.3) };
+    .loss { color: rgba(255, 82, 82, 0.3) };
 }
 
 @keyframes scrollTicker {

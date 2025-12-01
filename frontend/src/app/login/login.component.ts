@@ -1,5 +1,5 @@
 import { CommonModule, isPlatformBrowser } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, signal, OnInit, OnDestroy, ElementRef, ViewChild, PLATFORM_ID, NgZone } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal, AfterViewInit, OnDestroy, ElementRef, ViewChild, PLATFORM_ID, NgZone } from '@angular/core';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatDividerModule } from '@angular/material/divider';
@@ -28,7 +28,7 @@ import { AuthService } from '../auth.service';
     styleUrls: ['./login.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class LoginComponent implements OnInit, OnDestroy {
+export class LoginComponent implements AfterViewInit, OnDestroy {
 
     private apiUrl = 'http://localhost:8000/api'; 
     private authService = inject(AuthService);
@@ -64,12 +64,12 @@ export class LoginComponent implements OnInit, OnDestroy {
 
     constructor( private http: HttpClient ) {}
 
-    ngOnInit(): void {
+    ngAfterViewInit(): void {
         if (isPlatformBrowser(this.platformId)) {
             this.ngZone.runOutsideAngular(() => {
                 this.initCanvas();
-                this.initTickerStream();
                 this.startAnimationLoop();
+                this.initTickerStream();
 
                 window.addEventListener('resize', this.onResize);
             });
