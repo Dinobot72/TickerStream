@@ -14,7 +14,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.
 from model.bot.strategy_engine import get_bot_decision
 
 from .database import get_db_connection, setup_database
-from .services import get_stock_data, get_stock_metrics
+from .services import get_stock_data, get_stock_metrics, get_historical_data
 
 # --- Security Configuration ---
 SECRET_KEY = "***REMOVED_KEY***"
@@ -291,6 +291,20 @@ def change_user_password(user_id: int, password_data: PasswordChange, current_us
 @app.get("/api/stock/{ticker}")
 def get_stock_chart( ticker: str ):
     return get_stock_data(ticker.upper())
+
+@app.get("/api/stock/{ticker}/history")
+def get_stock_history(ticker: str, period: str):
+    period_map = {
+        "1D": "1d",
+        "1W": "5d",
+        "1M": "1mo",
+        "1Y": "1y",
+        "ALL": "max"
+    }
+
+    yf_period = period_map.get(period, "1mo")
+    return get_historical_data(ticker.upper(), yf_period)
+
 
 @app.get("/api/metrics/{ticker}")
 def get_metrics(ticker: str):
