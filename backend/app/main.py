@@ -299,6 +299,7 @@ def get_stock_history(ticker: str, period: str):
         "1W": "5d",
         "1M": "1mo",
         "1Y": "1y",
+        "5Y": "5y",
         "ALL": "max"
     }
 

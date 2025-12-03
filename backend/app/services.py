@@ -40,6 +40,7 @@ def get_historical_data(ticker: str, period: str):
         "1mo": "1d",  # 1 Month -> Daily
         "6mo": "1d",
         "1y": "1wk",  # 1 Year -> Weekly
+        "5y": "1mo",  # 5 Years -> Monthly
         "max": "1mo"
     }
     interval = interval_map.get(period, "1d")
