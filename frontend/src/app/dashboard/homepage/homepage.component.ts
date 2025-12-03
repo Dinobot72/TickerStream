@@ -186,6 +186,7 @@ export class HomepageComponent implements OnInit, OnDestroy {
     toggleUserMenu(): void {
         this.isUserMenuOpen.update(open => !open);
     }
+
     closeUserMenu(): void {
         this.isUserMenuOpen.set(false);
     }
@@ -429,7 +430,7 @@ export class HomepageComponent implements OnInit, OnDestroy {
             // If data is missing for a timestamp, we pass 'null' (Chart.js will span the gap)
             const dataPoints = sortedTimestamps.map(timestamp => {
                 const price = priceMap.get(timestamp);
-                return price !== undefined ? (price * stock.quantity) : null;
+                return price !== undefined ? price : null;
             });
 
             const color = this.getChartColor(index);
