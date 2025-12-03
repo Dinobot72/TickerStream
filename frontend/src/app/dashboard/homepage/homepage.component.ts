@@ -1,5 +1,5 @@
 import { CommonModule, isPlatformBrowser } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, signal, OnInit, Injectable, Input, inject, PLATFORM_ID } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, signal, OnInit, Injectable, Input, inject, PLATFORM_ID, OnDestroy } from '@angular/core';
 import { RouterModule, Router, NavigationEnd } from '@angular/router'; // Added RouterModule and Router for navigation/link
 import { HttpClient } from '@angular/common/http'; // Added HttpClient for API calls
 import { MatGridListModule } from '@angular/material/grid-list'; // Preserved old imports
@@ -8,6 +8,9 @@ import { MatButtonModule } from '@angular/material/button'; // Preserved old imp
 import { AuthService } from '../../auth.service'; 
 import { BotStatusService } from '../../services/bot-status.service';
 import { catchError, forkJoin, map, Observable, of, switchMap } from 'rxjs';
+import { Chart, ChartConfiguration, registerables } from 'chart.js';
+import { fork } from 'child_process';
+
 
 // Define interface for Holding data (Same as old, matched new structure)
 interface Holding {
@@ -41,6 +44,8 @@ interface TrendingStock {
     changePct: number;
 }
 
+Chart.register( ...registerables);
+
 @Component({
     selector: 'homepage', // Use the new selector
     standalone: true,
@@ -54,7 +59,7 @@ interface TrendingStock {
     styleUrls: ['./homepage.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class HomepageComponent implements OnInit {
+export class HomepageComponent implements OnInit, OnDestroy {
 
     // --- Injected Dependencies (From previous file) ---
     private apiUrl = 'http://localhost:8000/api'; 
@@ -62,7 +67,20 @@ export class HomepageComponent implements OnInit {
     private platformId = inject(PLATFORM_ID);
     isBotActive: Observable<boolean>;
 
-
+    // Chart Variables
+    public chart: Chart | undefined;
+    public selectedTimeSpan = signal<string>('1D');
+    public isChartLoading = signal<boolean>(false);
+    private chartColors = [
+        '#22C55E', // Green
+        '#3B82F6', // Blue
+        '#EF4444', // Red
+        '#EAB308', // Yellow
+        '#A855F7', // Purple
+        '#EC4899', // Pink
+        '#06B6D4', // Cyan
+        '#F97316', // Orange
+    ];
     
     // Injected into constructor from previous file
     constructor(
@@ -182,6 +200,12 @@ export class HomepageComponent implements OnInit {
         }
     }
 
+    ngOnDestroy(): void {
+        if (this.chart) {
+            this.chart.destroy();
+        }
+    }
+
     // --- API and Utility Methods (Preserved from previous file) ---
     fetchUserData(): void {
         const userId = this.authService.currentUserId();
@@ -257,6 +281,7 @@ export class HomepageComponent implements OnInit {
                 
                 console.log('Portfolio updated. Total Value:', totalVal);
                 this.portfolioValue.set(totalVal);
+                this.loadChartData('1D');
             });
     }
 
@@ -345,5 +370,137 @@ export class HomepageComponent implements OnInit {
                 this.router.navigate(['/login']); 
             }
         })
+    }
+
+    updateChart(timeSpan: string): void {
+        this.selectedTimeSpan.set(timeSpan);
+        this.loadChartData(timeSpan);
+    }
+
+    loadChartData(timeSpan: string): void {
+        const holdings = this.portfolioHoldings();
+        if (!holdings || holdings.length === 0) {
+            return;
+        }
+
+        this.isChartLoading.set(true);
+
+        const requests = holdings.map( h => 
+            this.http.get<any[]>(`${this.apiUrl}/stock/${h.ticker}/history?period=${timeSpan}`, {withCredentials: true}).pipe(
+                map( data =>  ({ ticker: h.ticker, quantity: h.quantity, history: data })),
+                catchError(err => {
+                    console.error(`Failed to load history for ${h.ticker}`, err);
+                    return of({ticker: h.ticker, quantity: h.quantity, history: [] });
+                } )
+            )
+        );
+
+        forkJoin(requests).subscribe(results => {
+            this.renderPortfolioChart(results, timeSpan);
+            this.isChartLoading.set(false);
+        })
+    }
+
+    renderPortfolioChart(stockData: { ticker: string, quantity: number, history: any[] }[], timeSpan: string) {
+        // 1. Consolidate all unique timestamps from all stocks to ensure X-axis alignment
+        const allTimestamps = new Set<string>();
+        stockData.forEach(stock => {
+            stock.history.forEach(point => allTimestamps.add(point.timestamp));
+        });
+        // Sort chronologically
+        const sortedTimestamps = Array.from(allTimestamps).sort();
+
+        // 2. Create the Master Labels (X-Axis)
+        const labels = sortedTimestamps.map(t => {
+            const date = new Date(t);
+            if (timeSpan === '1D' || timeSpan === '1W') {
+                return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            } else {
+                return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+            }
+        });
+
+        // 3. Generate a Dataset for EACH Stock
+        const datasets = stockData.map((stock, index) => {
+            // Create a lookup map for this stock's data points
+            const priceMap = new Map(stock.history.map(h => [h.timestamp, h.price]));
+
+            // Map master timestamps to this stock's value (Price * Quantity)
+            // If data is missing for a timestamp, we pass 'null' (Chart.js will span the gap)
+            const dataPoints = sortedTimestamps.map(timestamp => {
+                const price = priceMap.get(timestamp);
+                return price !== undefined ? (price * stock.quantity) : null;
+            });
+
+            const color = this.getChartColor(index);
+
+            return {
+                label: stock.ticker, // This will show in the legend
+                data: dataPoints,
+                borderColor: color,
+                backgroundColor: color, // Used for legend box
+                borderWidth: 2,
+                fill: false, // Don't fill area under the line
+                tension: 0.4, // Smooth curves
+                pointRadius: 0,
+                pointHoverRadius: 4
+            };
+        });
+
+        // 4. Destroy old chart if exists
+        if (this.chart) this.chart.destroy();
+
+        const config: ChartConfiguration = {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: datasets // Pass the array of datasets here
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index', // Hovering shows data for all stocks at that time
+                    intersect: false,
+                },
+                plugins: {
+                    legend: { 
+                        display: true, // Show the legend now!
+                        labels: { color: '#94A3B8' }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            // Format tooltip to show Currency
+                            label: (context) => {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(context.parsed.y);
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: { 
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: { color: '#94A3B8', maxTicksLimit: 8 } 
+                    },
+                    y: { 
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: { color: '#94A3B8' } 
+                    }
+                }
+            }
+        };
+
+        this.chart = new Chart("LiveChart", config);
+    }
+
+    private getChartColor(index: number): string {
+        return this.chartColors[index % this.chartColors.length];
     }
 }

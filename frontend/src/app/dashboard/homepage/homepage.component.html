@@ -44,14 +44,15 @@
                     Live Chart
                 </div>
                 <div class="chart-controls">
-                    <span class="chart-time-span">1D</span>
-                    <span class="chart-time-span">1W</span>
-                    <span class="chart-time-span">1M</span>
-                    <span class="chart-time-span">1Y</span>
+                    <span class="chart-time-span" (click)="updateChart('1D')">1D</span>
+                    <span class="chart-time-span" (click)="updateChart('1W')">1W</span>
+                    <span class="chart-time-span" (click)="updateChart('1M')">1M</span>
+                    <span class="chart-time-span" (click)="updateChart('1Y')">1Y</span>
                 </div>
             </h2>
             <div class="chart-component-placeholder">
-                <span class="chart-text">Chart Component Here</span>
+                <canvas id="LiveChart">{{ chart }}</canvas>
+                <!-- <span class="chart-text">Chart Component Here</span> -->
             </div>
         </div>
         
