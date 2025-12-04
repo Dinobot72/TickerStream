@@ -61,3 +61,24 @@ def get_historical_data(ticker: str, period: str):
     except Exception as e:
         print(f"Error fetching history for {ticker}: {e}")
         return []
+    
+def get_full_market_data(ticker: str):
+    """
+    Fetches the latest OHLC data for the bot's strategy engine.
+    """
+    try:
+        stock = yf.Ticker(ticker)
+        # Fetch 1 day of data to ensure we get the latest candle
+        hist = stock.history(period="1d", interval="1d") 
+        if not hist.empty:
+            latest = hist.iloc[-1]
+            return {
+                "Open": float(latest['Open']),
+                "High": float(latest['High']),
+                "Low": float(latest['Low']),
+                "Close": float(latest['Close'])
+            }
+        return None
+    except Exception as e:
+        print(f"Error fetching full market data for {ticker}: {e}")
+        return None
