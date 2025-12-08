@@ -1,3 +1,4 @@
+import math
 from fastapi import FastAPI, HTTPException, Depends, Response, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
@@ -6,15 +7,16 @@ from passlib.context import CryptContext
 from datetime import datetime, timedelta, timezone
 from pydantic import BaseModel
 from typing import List, Dict, Optional
+import asyncio
+import sqlite3
 import sys
 import os
-import sqlite3
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 from model.bot.strategy_engine import get_bot_decision
 
 from .database import get_db_connection, setup_database
-from .services import get_stock_data, get_stock_metrics, get_historical_data
+from .services import get_stock_data, get_stock_metrics, get_historical_data, get_full_market_data
 
 # --- Security Configuration ---
 SECRET_KEY = "604f4b0bb91cbf5d981f3152a0b2223eceaf22f18df22d1e7511a835da818a20"
@@ -33,6 +35,10 @@ class CookieBearer(HTTPBearer):
         return await super().__call__(request)
     
 cookie_bearer = CookieBearer(auto_error=False)
+
+# --- Global Bot State ---
+# This variable controls the background loop
+BOT_ACTIVE = False
 
 class PortfolioState( BaseModel ):
     balance: float
@@ -166,9 +172,147 @@ async def get_current_user(
     
     return {"username": username, "user_id": user_id}
 
+# --- 1. Helper function to execute trades (Logic moved out of API endpoint) ---
+def process_trade(user_id: int, ticker: str, action: str, quantity: int, price: float, is_bot_trade: bool):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Validation: Don't process empty trades
+    if quantity <= 0:
+        conn.close()
+        return {"error": "Quantity must be greater than 0"}
+    
+    # Check balance for BUY
+    if action.upper() == "BUY":
+        cost = quantity * price
+        cursor.execute("SELECT balance FROM portfolios WHERE user_id = ?", (user_id,))
+        row = cursor.fetchone()
+        if not row or row['balance'] < cost:
+            conn.close()
+            return {"error": "Insufficient funds"}
+
+    # Record the trade
+    cursor.execute(
+        "INSERT INTO trades (user_id, ticker, action, quantity, price, is_bot_trade) VALUES (?, ?, ?, ?, ?, ?)",
+        (user_id, ticker.upper(), action, quantity, price, is_bot_trade)
+    )
+
+    # Update Portfolio
+    if action.upper() == "BUY":
+        cost = quantity * price
+        cursor.execute("UPDATE portfolios SET balance = balance - ? WHERE user_id = ?", (cost, user_id))
+        cursor.execute(
+            "INSERT INTO holdings (user_id, ticker, quantity, purchase_price) VALUES (?, ?, ?, ?) "
+            "ON CONFLICT(user_id, ticker) DO UPDATE SET quantity = quantity + excluded.quantity",
+            (user_id, ticker.upper(), quantity, price)
+        )
+    elif action.upper() == "SELL":
+        proceeds = quantity * price
+        cursor.execute("UPDATE portfolios SET balance = balance + ? WHERE user_id = ?", (proceeds, user_id))
+        cursor.execute("UPDATE holdings SET quantity = quantity - ? WHERE user_id = ? AND ticker = ?",
+                       (quantity, user_id, ticker.upper()))
+        cursor.execute("DELETE FROM holdings WHERE user_id = ? AND ticker = ? AND quantity <= 0",
+                       (user_id, ticker.upper()))
+
+    conn.commit()
+    conn.close()
+    return {"message": "Trade processed successfully"}
+
+# --- 2. The Background Loop ---
+async def run_trading_bot():
+    """
+    Infinite loop that acts as the bot.
+    """
+    BOT_USER_ID = 11  # The user ID the bot trades for
+    await asyncio.sleep(5)  # Wait for DB to initialize
+    print("--- 🤖 Trading Bot Activated ---")
+    
+    # Configuration
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT ticker FROM watchlist WHERE user_id=?", (BOT_USER_ID,))
+    user_watchlist = [dict(row) for row in cursor.fetchall()]
+    print(f"User Watchlist: {user_watchlist}")
+    conn.close()
+    WATCHLIST = ["AAPL", "MSFT", "GOOG", "TSLA", "NVDA", "DG", "RCL"] + user_watchlist
+    ALLOCATION_PCT = 0.50
+    TRADE_QTY = 1
+
+    while True:
+        try:
+           # 1. Check the Switch
+            if not BOT_ACTIVE:
+                # If off, sleep and check again later
+                await asyncio.sleep(5) 
+                continue
+
+            # Iterate through each stock in the watchlist
+            for ticker in WATCHLIST:
+                print(f"Bot: Analyzing {ticker}...")
+
+                # 1. Get Market Data
+                market_data = get_full_market_data(ticker)
+                if not market_data:
+                    print(f"Bot: No data for {ticker}. Skipping.")
+                    continue
+                
+                # 2. Get User State
+                conn = get_db_connection()
+                cursor = conn.cursor()
+                cursor.execute("SELECT balance FROM portfolios WHERE user_id = ?", (BOT_USER_ID,))
+                portfolio = cursor.fetchone()
+                
+                cursor.execute("SELECT quantity FROM holdings WHERE user_id = ? AND ticker = ?", (BOT_USER_ID, ticker))
+                holding = cursor.fetchone()
+                conn.close()
+
+                balance = portfolio['balance'] if portfolio else 0.0
+                shares_held = holding['quantity'] if holding else 0
+                current_price = market_data['Close']
+
+                # 3. Get AI Decision
+                decision_result = get_bot_decision(balance, shares_held, market_data)
+                decision = decision_result.get("decision")
+                
+                # 4. Calculate Quantity (The "How Much" Logic)
+                trade_qty = 0
+
+                if decision == "BUY":
+                    # Simple Logic: Use ALLOCATION_PCT of available cash
+                    investable_amount = balance * ALLOCATION_PCT
+                    trade_qty = math.floor(investable_amount / current_price)
+                    
+                    # If we can't afford allocation but have *some* money, try to buy 1 share
+                    if trade_qty == 0 and balance > current_price:
+                        trade_qty = 1
+                        
+                elif decision == "SELL":
+                    # Logic: Sell EVERYTHING we hold
+                    trade_qty = shares_held
+
+                print(f"Bot: {ticker} -> {decision} | Shares: {shares_held} | Qty to Trade: {trade_qty}")
+
+                # 5. Execute Trade
+                if trade_qty > 0:
+                    result = process_trade(BOT_USER_ID, ticker, decision, trade_qty, current_price, True)
+                    if "error" in result:
+                        print(f"Bot Trade Error ({ticker}): {result['error']}")
+                    else:
+                        print(f"Bot Trade Executed: {result['message']}")
+                
+                # Small delay between tickers to be polite to the API
+                await asyncio.sleep(2)
+            
+        except Exception as e:
+            print(f"Bot Error: {e}")
+        
+        # Sleep for 60 seconds before next check
+        await asyncio.sleep(60)
+
 @app.on_event("startup")
 def on_startup():
     setup_database()
+    asyncio.create_task(run_trading_bot())
 
 # --- FastApi Endpoints ---
 @app.post("/api/register")
@@ -495,53 +639,35 @@ def remove_from_watchlist(user_id: int, ticker: str, current_user: dict = Depend
     return {"message": f"{ticker_upper} removed from watchlist successfully."}
 
 
-# --- Bot Control Endpoints (Placeholders) ---
+# --- Bot Control Endpoints (Connected to BotStatusService) ---
+
+@app.get("/api/bot/status")
+def get_bot_status(current_user: dict = Depends(get_current_user)):
+    status_str = "active" if BOT_ACTIVE else "inactive"
+    return {"status": status_str, "message": f"Bot is {status_str}"}
+
 @app.post("/api/bot/start")
 def start_bot(current_user: dict = Depends(get_current_user)):
-    user_id = current_user["user_id"]
-    # TODO: Implement actual logic to start the bot process for this user
-    print(f"Placeholder: Starting bot for user {user_id}")
-    bot_state[user_id] = BotStatus(status="active", message="Bot is starting...")
-    # Simulate startup time
-    # In a real app, this would involve background tasks/processes
-    import time
-    time.sleep(1) 
-    bot_state[user_id] = BotStatus(status="active", message="Actively monitoring market...")
-    return bot_state[user_id]
+    global BOT_ACTIVE
+    BOT_ACTIVE = True
+    print(f"Bot started by user {current_user['username']}")
+    return {"status": "active", "message": "Bot started successfully"}
 
 @app.post("/api/bot/stop")
 def stop_bot(current_user: dict = Depends(get_current_user)):
-    user_id = current_user["user_id"]
-    # TODO: Implement actual logic to stop the bot process for this user
-    print(f"Placeholder: Stopping bot for user {user_id}")
-    bot_state[user_id] = BotStatus(status="inactive", message="Bot stopped by user.")
-    return bot_state[user_id]
+    global BOT_ACTIVE
+    BOT_ACTIVE = False
+    print(f"Bot stopped by user {current_user['username']}")
+    return {"status": "inactive", "message": "Bot stopped successfully"}
 
-@app.get("/api/bot/status", response_model=BotStatus)
-def get_bot_status(current_user: dict = Depends(get_current_user)):
-    user_id = current_user["user_id"]
-    # TODO: Implement logic to check the actual status of the bot process
-    status = bot_state.get(user_id, BotStatus(status="inactive", message="Bot has not been started."))
-    return status
-
-# --- Bot Decision Endpoint ---
+# Manual Trigger for Testing (Optional)
 @app.post("/api/bot/decision")
 def make_decision(state: PortfolioState, current_user: dict = Depends(get_current_user)):
-    if get_bot_decision is None:
-         raise HTTPException(status_code=501, detail="Strategy engine not loaded.")
     try:
-        decision_result = get_bot_decision(state.balance, state.shares_held)
+        market_data = get_full_market_data("AAPL")
+        decision_result = get_bot_decision(state.balance, state.shares_held, market_data)
         if "error" in decision_result:
             raise HTTPException(status_code=500, detail=decision_result["error"])
-        
-        # Optionally: Automatically execute the trade based on the decision
-        # Be very careful with auto-execution in a real application!
-        # decision = decision_result.get("decision")
-        # if decision in ["BUY", "SELL"]:
-        #     # Fetch current price, determine quantity etc. then call record_trade
-        #     pass 
-
         return decision_result
     except Exception as e:
-        print(f"Error during bot decision: {e}")
-        raise HTTPException(status_code=500, detail=f"An error occurred while getting bot decision: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
