@@ -1,0 +1,99 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.trading-container {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.trade-card {
+  width: 100%;
+  max-width: 450px;
+  background-color: var(--bg-secondary);
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  padding: 1.5rem;
+  margin-top: 1rem;
+}
+
+.action-toggle {
+  display: flex;
+  background-color: var(--bg-accent);
+  border-radius: 0.375rem;
+  padding: 0.25rem;
+  margin-bottom: 1rem;
+}
+
+.toggle-btn {
+  flex: 1;
+  padding: 0.5rem 0;
+  text-align: center;
+  border-radius: 0.25rem;
+  border: none;
+  background-color: transparent;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s, box-shadow 0.2s;
+
+  &.active-buy {
+    background-color: var(--primary-color);
+    color: #FFFFFF;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  }
+  &.active-sell {
+    background-color: var(--danger-color);
+    color: #FFFFFF;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  }
+}
+
+.uppercase-input {
+  text-transform: uppercase;
+}
+
+.price-display {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+.radio-group-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.radio-group {
+  display: flex;
+  gap: 1rem;
+}
+
+.radio-label {
+  display: flex;
+  align-items: center;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  cursor: pointer;
+
+  input[type="radio"] {
+    width: 1rem;
+    height: 1rem;
+    margin-right: 0.5rem;
+    // Basic custom radio
+    accent-color: var(--primary-color);
+  }
+}
+
+.btn {
+  width: 100%;
+  margin-top: 1rem;
+}
+

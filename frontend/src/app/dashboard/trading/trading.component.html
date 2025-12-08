@@ -1,0 +1,107 @@
+<div class="trading-container">
+  <h1 class="page-title">Trade</h1>
+
+  <div class="trade-card">
+    <!-- Action Buttons (Buy/Sell) -->
+    <div class="action-toggle">
+      <button
+        class="toggle-btn"
+        [class.active-buy]="tradeAction() === 'BUY'"
+        (click)="tradeAction.set('BUY')">
+        Buy
+      </button>
+      <button
+        class="toggle-btn"
+        [class.active-sell]="tradeAction() === 'SELL'"
+        (click)="tradeAction.set('SELL')">
+        Sell
+      </button>
+    </div>
+
+    <!-- Ticker Input -->
+    <div class="form-group">
+      <label for="ticker">Ticker Symbol</label>
+      <input
+        type="text"
+        id="ticker"
+        placeholder="e.g., AAPL"
+        class="input-field uppercase-input"
+        [(ngModel)]="ticker"
+        required
+      />
+      <!-- Placeholder price display -->
+       @if (ticker().trim()) {
+         <p class="price-display">Market Price: ${{ currentPrice().toFixed(2) }}</p>
+       }
+    </div>
+
+    <!-- Quantity Input -->
+    <div class="form-group">
+      <label for="quantity">Quantity</label>
+      <input
+        type="number"
+        id="quantity"
+        placeholder="Number of shares"
+        min="1"
+        class="input-field"
+        [(ngModel)]="quantity"
+        required
+      />
+    </div>
+
+    <!-- Order Type -->
+    <div class="form-group">
+      <label class="radio-group-label">Order Type</label>
+      <div class="radio-group">
+        <label class="radio-label">
+          <input type="radio" name="orderType" value="MARKET" [(ngModel)]="orderType">
+          <span>Market</span>
+        </label>
+        <label class="radio-label">
+          <input type="radio" name="orderType" value="LIMIT" [(ngModel)]="orderType">
+          <span>Limit</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Limit Price Input (Conditional) -->
+    @if (orderType() === 'LIMIT') {
+      <div class="form-group">
+        <label for="limitPrice">Limit Price</label>
+        <input
+          type="number"
+          id="limitPrice"
+          placeholder="Price per share"
+          step="0.01"
+          min="0.01"
+          class="input-field"
+          [(ngModel)]="limitPrice"
+          required
+        />
+      </div>
+    }
+
+    <!-- Submit Button -->
+    <button
+      (click)="submitTrade()"
+      [disabled]="isSubmitting()"
+      class="btn"
+      [class.btn-primary]="tradeAction() === 'BUY'"
+      [class.btn-danger]="tradeAction() === 'SELL'">
+      {{ isSubmitting() ? 'Processing...' : ('Submit ' + tradeAction() + ' Order') }}
+    </button>
+
+    <!-- Messages -->
+    @if (errorMessage()) {
+        <div class="message-error">
+            {{ errorMessage() }}
+        </div>
+    }
+     @if (successMessage()) {
+        <div class="message-success">
+            {{ successMessage() }}
+        </div>
+    }
+  </div>
+</div>
+

@@ -1,0 +1,129 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.bot-container {
+  padding: 1.5rem;
+}
+
+.bot-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+
+  @media (min-width: 1024px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.card-span-2 {
+  @media (min-width: 1024px) {
+    grid-column: span 2 / span 2;
+  }
+}
+.card-span-3 {
+  @media (min-width: 1024px) {
+    grid-column: span 3 / span 3;
+  }
+}
+
+/* Status Card */
+.status-control {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.status-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-weight: 600;
+    color: var(--negative-change);
+    
+    .status-dot {
+        width: 0.75rem;
+        height: 0.75rem;
+        border-radius: 50%;
+        background-color: var(--danger-color);
+    }
+    &.active {
+        color: var(--positive-change);
+        .status-dot {
+            background-color: var(--primary-color);
+        }
+    }
+}
+.status-message {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+.last-action-time {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.5rem;
+}
+
+/* Performance Card */
+.performance-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  text-align: center;
+}
+.perf-item {
+  background-color: var(--bg-primary);
+  padding: 1rem;
+  border-radius: 0.375rem;
+}
+.perf-label {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.perf-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-top: 0.25rem;
+  color: var(--text-primary);
+  
+  &.perf-value-info {
+    color: var(--info-color);
+  }
+}
+
+/* Config Card */
+.config-form {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  
+  @media (min-width: 768px) {
+    grid-template-columns: 1fr 1fr;
+    align-items: flex-end;
+  }
+
+  .btn {
+    width: fit-content;
+  }
+}
+
+/* Activity Log */
+.activity-table-container {
+  max-height: 400px;
+  overflow-y: auto;
+}
+.activity-table {
+  thead {
+    position: sticky;
+    top: 0;
+  }
+}
+

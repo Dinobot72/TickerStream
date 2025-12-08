@@ -32,3 +32,32 @@ def get_stock_metrics(ticker: str):
     except Exception as e:
         print(f"Error fetching metrics for {ticker}: {e}")
         return {}
+    
+def get_historical_data(ticker: str, period: str):
+    interval_map = {
+        "1d": "5m",   # 1 Day -> 5 minute intervals
+        "5d": "15m",  # 1 Week -> 15 minute intervals
+        "1mo": "1d",  # 1 Month -> Daily
+        "6mo": "1d",
+        "1y": "1wk",  # 1 Year -> Weekly
+        "5y": "1mo",  # 5 Years -> Monthly
+        "max": "1mo"
+    }
+    interval = interval_map.get(period, "1d")
+
+    try:
+        stock = yf.Ticker(ticker)
+
+        hist = stock.history(period=period, interval=interval)
+
+        data = []
+
+        for index, row in hist.iterrows():
+            data.append({
+                "timestamp": index.isoformat(),
+                "price": row['Close']
+            })
+        return data
+    except Exception as e:
+        print(f"Error fetching history for {ticker}: {e}")
+        return []
