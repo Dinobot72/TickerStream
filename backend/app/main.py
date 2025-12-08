@@ -223,12 +223,18 @@ async def run_trading_bot():
     """
     Infinite loop that acts as the bot.
     """
+    BOT_USER_ID = 11  # The user ID the bot trades for
     await asyncio.sleep(5)  # Wait for DB to initialize
     print("--- 🤖 Trading Bot Activated ---")
     
     # Configuration
-    WATCHLIST = ["AAPL", "MSFT", "GOOG", "TSLA", "NVDA"]
-    BOT_USER_ID = 11  # The user ID the bot trades for
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT ticker FROM watchlist WHERE user_id=?", (BOT_USER_ID,))
+    user_watchlist = [dict(row) for row in cursor.fetchall()]
+    print(f"User Watchlist: {user_watchlist}")
+    conn.close()
+    WATCHLIST = ["AAPL", "MSFT", "GOOG", "TSLA", "NVDA", "DG", "RCL"] + user_watchlist
     ALLOCATION_PCT = 0.50
     TRADE_QTY = 1
 
@@ -301,7 +307,7 @@ async def run_trading_bot():
             print(f"Bot Error: {e}")
         
         # Sleep for 60 seconds before next check
-        await asyncio.sleep(300)
+        await asyncio.sleep(60)
 
 @app.on_event("startup")
 def on_startup():
