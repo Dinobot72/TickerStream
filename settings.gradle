@@ -1,4 +1,0 @@
-// stockBot/settings.gradle
-rootProject.name = 'stockBot'
-
-include 'backend', 'frontend'

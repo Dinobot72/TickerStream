@@ -1,116 +1,76 @@
-<main class="login-container">
-    <mat-card class="login-card">
-        <mat-card-header>
-            <mat-card-title style="text-align: center;"> Welcome to TickerStream AI </mat-card-title>
-        </mat-card-header>
-        <mat-card-header>
-            <mat-card-title> Login </mat-card-title>
-        </mat-card-header>
-        <mat-card-content style="align-items: center;">
-            <form>
-                <mat-form-field>
-                    <mat-label> Username </mat-label>
-                    <input
-                        type="text"
-                        placeholder="Enter your Username"
-                        aria-label="username"
-                        [(ngModel)]="username"
-                        name="usernameInput"
-                        matInput
-                    >
-                </mat-form-field>
-            </form>
-            <form>
-                <mat-form-field>
-                    <mat-label> Password </mat-label>
-                    <input
-                        [type]="hide() ? 'password' : 'text'"
-                        placeholder="Enter your Password"
-                        aria-label="username"
-                        [(ngModel)]="password"
-                        name="passwordInput"
-                        matInput
-                    >
-                    <button
-                        matIconButton
-                        matSuffix
-                        (click)="clickEvent($event)"
-                        style="padding-right: 5px;"
-                    >
-                        <mat-icon >{{hide() ? 'visibility_off' : 'visibility'}}</mat-icon>
-                    </button>
-                </mat-form-field>
-            </form>
-            <!-- <form>
-                <mat-form-field>
-                    <mat-label> First Name </mat-label>
-                    <input
-                        type="text"
-                        placeholder="Enter your First Name"
-                        aria-label="firstName"
-                        [(ngModel)]="firstName"
-                        name="firstNameInput"
-                        matInput
-                    >
-                </mat-form-field>
-            </form> -->
-            <!-- <form>
-                <mat-form-field>
-                    <mat-label> Last Name </mat-label>
-                    <input
-                        type="text"
-                        placeholder="Enter your Last Name"
-                        aria-label="lastName"
-                        [(ngModel)]="lastName"
-                        name="lastNameInput"
-                        matInput
-                    >
-                </mat-form-field>
-            </form> -->
-            <div style="width: 100%; align-items: center; padding-bottom: 5px;">
-                <button
-                    matButton="filled"
-                    (click)="login()"
-                >
-                    Login
-                </button>
-            </div>
-            <mat-divider style="padding-top: 5px;"></mat-divider>
-            <h3>Not registered yet? Register here</h3>
-            <form>
-                <mat-form-field>
-                    <mat-label> First Name </mat-label>
-                    <input
-                        type="text"
-                        placeholder="Enter your First Name"
-                        aria-label="firstName"
-                        [(ngModel)]="firstName"
-                        name="firstNameInput"
-                        matInput
-                    >
-                </mat-form-field>
-            </form>
-            <form>
-                <mat-form-field>
-                    <mat-label> Last Name </mat-label>
-                    <input
-                        type="text"
-                        placeholder="Enter your Last Name"
-                        aria-label="lastName"
-                        [(ngModel)]="lastName"
-                        name="lastNameInput"
-                        matInput
-                    >
-                </mat-form-field>
-            </form>
-            <div style="width: 100%; align-items: center;">
-            <button
-                    mat-button
-                    (click)="register()"
-                >
-                    Register
-                </button>
-            </div>
-        </mat-card-content>
+<!-- Background Elements -->
+<div class="background-container">
+    <canvas #marketWaveCanvas id="market-wave-canvas"></canvas>
+    <div #tickerStreamContainer class="ticker-stream" id="ticker-stream-container"></div>
+</div>
+
+<!-- Login/Register Panel --->
+<div class="login-container">
+    <mat-card class="access-panel">
+        <div class="form-container">
+
+        </div>
+        <!-- Login Form -->
+        <div id="login-form" class="form-container" *ngIf="isLoginActive()">
+            <mat-card-header class="form-header">
+                <mat-card-title class="logo">TICKER<span class="accent">STREAM</span></mat-card-title>
+                <mat-card-subtitle>AI-Powered Market Intelligence</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+                <form (submit)="login()">
+                    <mat-form-field appearence="outline" class="form-field">
+                        <mat-label>Username</mat-label>
+                        <input matInput text placeholder="Username" [(ngModel)]="username" name="loginUsername" required>
+                    </mat-form-field>
+                    <mat-form-field appearence="outline" class="form-field">
+                        <mat-label>Password</mat-label>
+                        <input matInput [type]="hidePassword() ? 'password' : 'text'" placeholder="Password" [(ngModel)]="password" name="loginPassword" required>
+                         <!-- Basic password toggle - Material Icon doesn't work out of the box without specific setup -->
+                        <button mat-icon-button matSuffix type="button" (click)="togglePasswordVisibility()" aria-label="Toggle password visibility">
+                            <mat-icon>{{hidePassword() ? 'visibility_off' : 'visibility'}}</mat-icon>
+                        </button>
+                    </mat-form-field>
+                    <button mat-flat-button color="primary" class="btn" (click)="login()">Login</button>
+                </form>
+                <mat-card-footer class="form-footer">
+                <p>New user? <a (click)="showRegisterForm()" class="toggle-link">Create Account</a></p>
+            </mat-card-footer>
+            </mat-card-content>
+        </div>
+
+        <!-- Registration Form -->
+        <div id="register-form" class="form-container" *ngIf="!isLoginActive()">
+            <mat-card-header class="form-header">
+                <mat-card-title class="logo">REGISTER</mat-card-title>
+                <mat-card-subtitle>Join the Next Wave of Trading</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+                <form (submit)="register()">
+                    <mat-form-field appearence="outline" class="form-field">
+                        <mat-label>First Name</mat-label>
+                        <input matInput placeholder="First Name" [(ngModel)]="firstName" name="regFirstName" required>
+                    </mat-form-field>
+                    <mat-form-field appearence="outline" class="form-field">
+                         <mat-label>Last Name</mat-label>
+                        <input matInput placeholder="Last Name" [(ngModel)]="lastName" name="regLastName" required>
+                    </mat-form-field>
+                     <mat-form-field appearence="outline" class="form-field">
+                        <mat-label>Username</mat-label>
+                        <input matInput placeholder="Username" [(ngModel)]="username" name="regUsername" required>
+                    </mat-form-field>
+                    <mat-form-field appearence="outline" class="form-field">
+                        <mat-label>Create Password</mat-label>
+                        <input matInput [type]="hidePassword() ? 'password' : 'text'" placeholder="Create Password" [(ngModel)]="password" name="regPassword" required>
+                         <button mat-icon-button matSuffix type="button" (click)="togglePasswordVisibility()" aria-label="Toggle password visibility">
+                            <mat-icon>{{hidePassword() ? 'visibility_off' : 'visibility'}}</mat-icon>
+                        </button>
+                    </mat-form-field>
+                    <button mat-flat-button color="primary" class="btn" (click)="register()">Register</button>
+                </form>
+            </mat-card-content>
+            <mat-card-footer class="form-footer">
+                <p>Already registered? <a (click)="showLoginForm()" class="toggle-link">Sign In</a></p>
+            </mat-card-footer>
+        </div>
     </mat-card>
-</main>
+</div>

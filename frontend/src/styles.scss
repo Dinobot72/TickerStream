@@ -1,39 +1,251 @@
+/* Global SCSS Variables */
+:root {
+  --bg-primary: #0F172A;     // slate-900
+  --bg-secondary: #1E293B;  // slate-800
+  --bg-accent: #334155;      // slate-700
+  --border-color: #475569;   // slate-600
+  --text-primary: #F1F5F9;   // slate-100
+  --text-secondary: #94A3B8; // slate-400
+  --text-muted: #64748B;     // slate-500
 
-// Include theming for Angular Material with `mat.theme()`.
-// This Sass mixin will define CSS variables that are used for styling Angular Material
-// components according to the Material 3 design spec.
-// Learn more about theming and how to use it for your application's
-// custom components at https://material.angular.dev/guide/theming
-@use '@angular/material' as mat;
+  --primary-color: #22C55E;  // green-600
+  --primary-color-hover: #16A34A; // green-700
+  --danger-color: #EF4444;   // red-600
+  --danger-color-hover: #DC2626; // red-700
+  --info-color: #3B82F6;    // blue-600
+  --info-color-hover: #2563EB; // blue-700
+  --positive-change: #22C55E;
+  --negative-change: #EF4444;
 
-html {
-  @include mat.theme((
-    color: (
-      primary: mat.$azure-palette,
-      tertiary: mat.$blue-palette,
-    ),
-    typography: Roboto,
-    density: 0,
-  ));
+  --font-family-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
-body {
-  // Default the application to a light color theme. This can be changed to
-  // `dark` to enable the dark color theme, or to `light dark` to defer to the
-  // user's system settings.
-  color-scheme: light;
-
-  // Set a default background, font and text colors for the application using
-  // Angular Material's system-level CSS variables. Learn more about these
-  // variables at https://material.angular.dev/guide/system-variables
-  background-color: var(--mat-sys-surface);
-  color: var(--mat-sys-on-surface);
-  font: var(--mat-sys-body-medium);
-
-  // Reset the user agent margin.
+/* Global Resets and Base Styles */
+* {
+  box-sizing: border-box;
   margin: 0;
+  padding: 0;
 }
-/* You can add global styles to this file, and also import other style files */
 
-html, body { height: 100%; }
-body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+html, body {
+  height: 100%;
+  font-family: var(--font-family-sans);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-primary);
+  font-weight: 600;
+  margin-bottom: 0.5em;
+}
+
+h1.page-title {
+  font-size: 2.25rem; // 3xl
+  font-weight: 700;   // bold
+  margin-bottom: 1.5rem; // mb-6
+}
+
+/* Card base style */
+.card {
+  background-color: var(--bg-secondary);
+  border-radius: 0.5rem; // rounded-lg
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  padding: 1.5rem; // p-6
+  height: 100%;
+}
+
+.card-title {
+  font-size: 1.25rem; // xl
+  font-weight: 600;   // semibold
+  margin-bottom: 1rem; // mb-4
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.5rem;
+}
+
+/* Forms */
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  font-size: 0.875rem; // sm
+  font-weight: 500;    // medium
+  color: var(--text-secondary);
+  margin-bottom: 0.25rem;
+}
+
+.input-field, .select-field {
+  width: 100%;
+  padding: 0.75rem 0.75rem;
+  background-color: var(--bg-accent);
+  border: 1px solid var(--border-color);
+  border-radius: 0.375rem; // rounded-md
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.3);
+  }
+
+  &[readonly], &[disabled] {
+    background-color: #2a3342; // Darker slate
+    color: var(--text-muted);
+    cursor: not-allowed;
+  }
+}
+
+.select-field {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236B7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+  padding-right: 2.5rem;
+}
+
+
+/* Buttons */
+.btn {
+  display: inline-block;
+  padding: 0.625rem 1.25rem; // py-2.5 px-5
+  border-radius: 0.375rem; // rounded-md
+  font-weight: 600; // semibold
+  font-size: 0.875rem;
+  color: #FFFFFF;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  text-align: center;
+  text-decoration: none;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  &:hover:not(:disabled) {
+    background-color: var(--primary-color-hover);
+  }
+}
+
+.btn-danger {
+  background-color: var(--danger-color);
+  &:hover:not(:disabled) {
+    background-color: var(--danger-color-hover);
+  }
+}
+
+.btn-info {
+  background-color: var(--info-color);
+  &:hover:not(:disabled) {
+    background-color: var(--info-color-hover);
+  }
+}
+
+/* Tables */
+.table-container {
+  overflow-x: auto;
+  background-color: var(--bg-secondary);
+  border-radius: 0.5rem; // rounded-lg
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+.data-table {
+  width: 100%;
+  min-width: 600px;
+  border-collapse: collapse;
+
+  thead {
+    background-color: var(--bg-accent);
+    
+    th {
+      padding: 0.75rem 1.5rem; // py-3 px-6
+      text-align: left;
+      font-size: 0.75rem; // xs
+      font-weight: 500;    // medium
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+  }
+
+  tbody {
+    background-color: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+
+    tr {
+      border-top: 1px solid var(--border-color);
+      transition: background-color 0.15s;
+      &:hover {
+        background-color: #2a3342; // slightly lighter slate
+      }
+    }
+    
+    td {
+      padding: 1rem 1.5rem; // py-4 px-6
+      white-space: nowrap;
+      font-size: 0.875rem; // sm
+      color: var(--text-primary);
+
+      &.text-muted {
+        color: var(--text-secondary);
+      }
+    }
+  }
+}
+
+/* Helper Classes */
+.positive-change {
+  color: var(--positive-change);
+}
+.negative-change {
+  color: var(--negative-change);
+}
+
+/* Utility Messages */
+.loading-message, .empty-message, .error-message {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--text-secondary);
+  background-color: var(--bg-secondary);
+  border-radius: 0.5rem;
+}
+
+.error-message {
+  background-color: rgba(239, 68, 68, 0.1);
+  border: 1px solid var(--danger-color);
+  color: var(--danger-color);
+  font-weight: 500;
+}
+
+.message-success {
+    padding: 0.75rem 1rem;
+    margin-top: 1rem;
+    background-color: rgba(34, 197, 94, 0.1);
+    border: 1px solid var(--primary-color);
+    color: var(--primary-color);
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+}
+
+.message-error {
+    padding: 0.75rem 1rem;
+    margin-top: 1rem;
+    background-color: rgba(239, 68, 68, 0.1);
+    border: 1px solid var(--danger-color);
+    color: var(--danger-color);
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+}
+

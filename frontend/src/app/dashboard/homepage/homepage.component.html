@@ -1,0 +1,195 @@
+<div class="homepage-container">
+    <header class="top-bar">
+        <!-- Greeting -->
+        <div class="greeting-group">
+            <h1 class="page-title">Welcome Back, {{ userName() }}!</h1>
+            <p class="page-subtitle">Here's your dashboard overview for today.</p>
+        </div>
+
+        <!-- Search and User Menu -->
+        <div class="actions-group">
+            <div class="search-group">
+                <input type="text" placeholder="Search" class="search-input" />
+                <svg class="search-icon" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"></path>
+                </svg>
+            </div>
+
+            <div class="user-menu" (mouseleave)="closeUserMenu()">
+                <button class="user-menu-button" (click)="toggleUserMenu()">
+                    <img class="user-avatar"
+                        [src]="'https://placehold.co/100x100/1E293B/94A3B8?text=' + (userName()?.[0] || 'U')"
+                        alt="User Avatar">
+                    <span class="user-name">{{ userName() }}</span>
+                    <svg class="user-menu-chevron" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
+                </button>
+                
+                @if (isUserMenuOpen()) {
+                    <div class="user-menu-dropdown">
+                        <a routerLink="/dashboard/settings" class="dropdown-link" (click)="closeUserMenu()">Profile & Settings</a>
+                        <a routerLink="/login" class="dropdown-link dropdown-link-danger" (click)="closeUserMenu(); logOut()">Logout</a>
+                    </div>
+                }
+            </div>
+        </div>
+    </header>
+
+    <!-- Dashboard Content -->
+    <div class="dashboard-grid">
+
+        <!-- Chart Component -->
+        <div class="card card-span-2 chart-card">
+            <h2 class="chart-title">
+                <div>
+                    Live Chart
+                </div>
+                <div class="chart-controls">
+                    <span class="chart-time-span" [class.active]="selectedTimeSpan() === '1D'" (click)="updateChart('1D')">1D</span>
+                    <span class="chart-time-span" [class.active]="selectedTimeSpan() === '1W'" (click)="updateChart('1W')">1W</span>
+                    <span class="chart-time-span" [class.active]="selectedTimeSpan() === '1M'" (click)="updateChart('1M')">1M</span>
+                    <span class="chart-time-span" [class.active]="selectedTimeSpan() === '1Y'" (click)="updateChart('1Y')">1Y</span>
+                    <span class="chart-time-span" [class.active]="selectedTimeSpan() === '5Y'" (click)="updateChart('5Y')">5Y</span>
+
+                </div>
+            </h2>
+            <div class="chart-component-placeholder">
+                <canvas id="LiveChart">{{ chart }}</canvas>
+                <!-- <span class="chart-text">Chart Component Here</span> -->
+            </div>
+        </div>
+        
+        <!-- Balances Component -->
+        <div class="card">
+            <h2 class="card-title">Balances</h2>
+            <div class="balance-list">
+                <div class="balance-item">
+                    <div class="balance-label">Cash Balance</div>
+                    <div class="balance-value">${{ userBalance().toFixed(2) }}</div>
+                </div>
+                <div class="balance-item">
+                    <div class="balance-label">Portfolio Value</div>
+                    <div class="balance-value">${{ portfolioValue().toFixed(2) }}</div>
+                </div>
+                <div class="balance-item">
+                    <div class="balance-label">Total P/L</div>
+                    <div class="balance-value" [ngClass]="totalPortfolioPL() >= 0 ? 'positive-change' : 'negative-change'">
+                        {{ totalPortfolioPL() >= 0 ? '+' : '' }}${{ totalPortfolioPL().toFixed(2) }} 
+                        ({{ totalPortfolioPLPct().toFixed(2) }}%)
+                    </div>
+                </div>
+            </div>
+            <button class="btn btn-primary" style="width: 100%; margin-top: 1rem;" (click)="deposit()">
+                Deposit Funds
+            </button>
+        </div>
+
+        <!-- Portfolio Snapshot Component -->
+        <div class="card">
+            <h2 class="card-title">Portfolio Snapshot</h2>
+            <div class="portfolio-summary-content">
+                <div class="portfolio-chart">
+                    <div class="chart-placeholder">
+                        <span class="chart-text" [ngClass]="totalPortfolioPLPct() >= 0 ? 'positive-change' : 'negative-change'">
+                            {{ totalPortfolioPLPct() >= 0 ? '+' : '' }}{{ totalPortfolioPLPct().toFixed(1) }}%
+                        </span>
+                    </div>
+                </div>
+                <div class="portfolio-summary-details">
+                    <div class="summary-item">
+                        <span class="summary-label">Total Holdings</span>
+                        <span class="summary-value">{{ portfolioHoldings().length }}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Cost Basis</span>
+                        <span class="summary-value">${{ portfolioCostBasis().toFixed(2) }}</span>
+                    </div>
+                    <a routerLink="/dashboard/positions" class="summary-link">View All Positions</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Market Overview Component -->
+        <div class="card">
+            <h2 class="card-title">Market Overview</h2>
+            <ul class="market-list">
+                @for (index of marketIndices(); track index.name) {
+                    <li class="market-item">
+                        <span class="item-name">{{ index.name }}</span>
+                        <div class="item-values">
+                            <span class="item-value">{{ index.value.toFixed(2) }}</span>
+                            <span class="item-change" [ngClass]="index.change >= 0 ? 'positive-change' : 'negative-change'">
+                                {{ index.change >= 0 ? '+' : '' }}{{ index.change.toFixed(2) }} ({{ index.changePct.toFixed(2) }}%)
+                            </span>
+                        </div>
+                    </li>
+                }
+            </ul>
+        </div>
+
+        <!-- Trending Stocks Component -->
+        <div class="card">
+            <h2 class="card-title">Trending Stocks</h2>
+            <ul class="market-list">
+                @for (stock of trendingStocks(); track stock.ticker) {
+                    <li class="market-item">
+                        <span class="item-name">{{ stock.ticker }}</span>
+                        <div class="item-values">
+                            <span class="item-value">${{ stock.price.toFixed(2) }}</span>
+                            <span class="item-change" [ngClass]="stock.changePct >= 0 ? 'positive-change' : 'negative-change'">
+                                {{ stock.changePct >= 0 ? '+' : '' }}{{ stock.changePct.toFixed(2) }}%
+                            </span>
+                        </div>
+                    </li>
+                } @empty {
+                    <p class="empty-list-message">Could not load trending data.</p>
+                }
+            </ul>
+        </div>
+
+        <!-- Recent Activity Component -->
+        <div class="card card-span-2">
+            <h2 class="card-title" style="display:flex; flex-direction: row;">
+                <span style="flex-grow: 1;">Recent Activity</span>
+                <a style="display: flex; flex-direction: row; align-items: center;">
+                    <span>Bot Status</span>
+                    @if (isBotActive) {
+                    <div class="status-indicator active" style="margin-left: 5px;">
+                        <span class="status-dot"></span>
+                    </div>
+                    } @else {<div class="status-indicator" style="margin-left: 5px;"><span class="status-dot"></span></div>}
+                </a>
+            </h2>
+            <div style="display: flex; flex-direction: row;">
+                <div style="flex-grow: 1;">
+                    @if (!recentActivity()?.length) {
+                        <p class="empty-list-message" style="padding: 1rem 0;">No recent activity found.</p>
+                    } @else {
+                        <ul class="activity-list">
+                            @for (activity of recentActivity(); track $index) {
+                                <li class="activity-item">
+                                    <div class="activity-info">
+                                        <span class="activity-action" [class.action-buy]="activity.action === 'BUY'" [class.action-sell]="activity.action === 'SELL'">
+                                            {{ activity.action }}
+                                        </span>
+                                        <span class="activity-details">
+                                            {{ activity.quantity }} {{ activity.ticker }} @ ${{ activity.price.toFixed(2) }}
+                                        </span>
+                                    </div>
+                                    <div class="activity-meta">
+                                        @if (activity.is_bot_trade) {
+                                            <span class="activity-type">Bot</span>
+                                        }
+                                        <span class="activity-timestamp">{{ activity.timestamp | date:'short' }}</span>
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+                <div style="height: 100%; align-content: baseline;">
+                    <a routerLink="/dashboard/ai-management" class="btn btn-info" >Manage Bot</a>
+                </div>
+            </div>
+        </div>
+    </div> 
+</div>
