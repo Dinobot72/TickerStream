@@ -8,6 +8,8 @@ def get_db_connection():
 def setup_database():
     conn = get_db_connection()
     cursor = conn.cursor()
+
+    # User Table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS  users (
             user_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -17,6 +19,8 @@ def setup_database():
             last_name TEXT NOT NULL
         )
     ''')
+
+    # Portfolios Table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS portfolios (
             user_id INTEGER PRIMARY KEY,
@@ -24,6 +28,8 @@ def setup_database():
             FOREIGN KEY (user_id) REFERENCES users (user_id)
         )
     ''')
+
+    # Holdings Table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS holdings (
             user_id INTEGER NOT NULL,
@@ -34,6 +40,8 @@ def setup_database():
             FOREIGN KEY (user_id) REFERENCES users (user_id)
         )
     ''')
+
+    # Trades Table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS trades (
             trade_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -47,5 +55,17 @@ def setup_database():
             FOREIGN KEY (user_id) REFERENCES users (user_id)
         )
     ''')
+
+    # Watchlist Table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS watchlist (
+            user_id INTEGER NOT NULL,
+            ticker TEXT NOT NULL,
+            added_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (user_id, ticker),
+            FOREIGN KEY (user_id) REFERENCES users (user_id)
+        )
+    ''')
+    
     conn.commit()
     conn.close()

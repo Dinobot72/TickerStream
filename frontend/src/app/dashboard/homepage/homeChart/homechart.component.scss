@@ -1,0 +1,47 @@
+
+.chart-card {
+
+  .chart-title {
+    @extend .chart-card;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: top;
+
+    .chart-controls {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    .chart-time-span {
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      background-color: var(--bg-accent);
+      color: var(--text-secondary);
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: background-color 0.15s, color 0.15s;
+
+      &:hover, &:first-child { // Default select 1D
+        background-color: var(--primary-color-hover);
+        color: var(--text-primary);
+        font-weight: 600;
+      }
+    }
+  }
+  
+  .chart-component-placeholder {
+    background-color: var(--bg-accent);
+    border-radius: 0.5rem;
+    min-height: 250px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1rem;
+
+    .chart-text {
+      color: var(--text-muted);
+      font-size: 1rem;
+    }
+  }
+}
