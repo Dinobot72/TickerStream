@@ -10,14 +10,13 @@ MODEL_PATH = os.path.join(current_dir, '..', '..', 'model', 'ppo_trading_bot.zip
 model = None
 
 # 1. Load the Brain once when the server starts
-if os.path.exists(MODEL_PATH):
-    try:
-        model = PPO.load(MODEL_PATH)
-        print(f"Trading model loaded successfully from {MODEL_PATH}")
-    except Exception as e:
-        print(f"Error loading model: {e}")
-else:
-    print(f"Warning: Model not found at {MODEL_PATH}")
+try:
+    model = PPO.load(MODEL_PATH)
+    print(f"Trading model loaded successfully from {MODEL_PATH}")
+except Exception as e:
+    print(f"Error loading model: {e}")
+
+
 
 # 2. The Decision Function (Now accepts 'market_data' instead of reading a file)
 def get_bot_decision(balance: float, shares_held: int, market_data: dict):
