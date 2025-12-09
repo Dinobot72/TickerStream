@@ -227,14 +227,30 @@ async def run_trading_bot():
     await asyncio.sleep(5)  # Wait for DB to initialize
     print("--- 🤖 Trading Bot Activated ---")
     
-    # Configuration
+    # 1. Start with your hardcoded or config defaults
+    WATCHLIST = ["AAPL", "MSFT", "GOOG", "TSLA", "NVDA"]
+
+    # 2. FETCH ADDITIONAL TICKERS FROM DB (e.g. from Holdings)
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT ticker FROM watchlist WHERE user_id=?", (BOT_USER_ID,))
-    user_watchlist = [dict(row) for row in cursor.fetchall()]
-    print(f"User Watchlist: {user_watchlist}")
+    
+    # Example: Get all tickers currently in your holdings
+    cursor.execute("SELECT DISTINCT ticker FROM holdings WHERE user_id = ?", (BOT_USER_ID,))
+    rows = cursor.fetchall()
+    
+    # --- THE FIX IS HERE ---
+    # Extract the 'ticker' string from each row object
+    held_tickers = [row['ticker'] for row in rows]
+    
     conn.close()
-    WATCHLIST = ["AAPL", "MSFT", "GOOG", "TSLA", "NVDA", "DG", "RCL"] + user_watchlist
+
+    # 3. Merge lists and remove duplicates
+    # set() removes duplicates, list() converts it back to a clean array
+    FULL_WATCHLIST = list(set(WATCHLIST + held_tickers))
+
+    print(f"Bot Watchlist: {FULL_WATCHLIST}") 
+    # Output will now be: ['AAPL', 'MSFT', 'DG', 'RCL']
+
     ALLOCATION_PCT = 0.50
     TRADE_QTY = 1
 
@@ -247,7 +263,7 @@ async def run_trading_bot():
                 continue
 
             # Iterate through each stock in the watchlist
-            for ticker in WATCHLIST:
+            for ticker in FULL_WATCHLIST:
                 print(f"Bot: Analyzing {ticker}...")
 
                 # 1. Get Market Data
