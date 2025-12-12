@@ -58,9 +58,9 @@ describe('DashboardComponent', () => {
 
     describe('on the server', () => {
         beforeEach(() => {
-            // Provide the 'server' platform ID for this block of tests
-            TestBed.overrideProvider(PLATFORM_ID, { useValue: 'server' });
-            fixture = TestBed.createComponent(DashboardComponent);
+            // Reconfigure the TestBed to provide the 'server' platform ID
+            TestBed.configureTestingModule({ providers: [{ provide: PLATFORM_ID, useValue: 'server' }] });
+            fixture = TestBed.createComponent(DashboardComponent); // Re-create component after reconfiguring
             component = fixture.componentInstance;
         });
 
@@ -74,9 +74,9 @@ describe('DashboardComponent', () => {
 
     describe('on the browser', () => {
         beforeEach(() => {
-            // Provide the 'browser' platform ID for this block of tests
-            TestBed.overrideProvider(PLATFORM_ID, { useValue: 'browser' });
-            fixture = TestBed.createComponent(DashboardComponent);
+            // Reconfigure the TestBed to provide the 'browser' platform ID
+            TestBed.configureTestingModule({ providers: [{ provide: PLATFORM_ID, useValue: 'browser' }] });
+            fixture = TestBed.createComponent(DashboardComponent); // Re-create component after reconfiguring
             component = fixture.componentInstance;
         });
 

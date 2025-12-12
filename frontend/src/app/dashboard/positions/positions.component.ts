@@ -50,7 +50,7 @@ export class PositionsComponent implements OnInit, OnDestroy {
   private apiUrl = 'http://localhost:8000/api';
   
   // Placeholder data
-  holdings = signal<DisplayHolding[]>([]);
+  positions = signal<DisplayHolding[]>([]);
   isLoading = signal(false);
   error = signal<string | null>(null);
 
@@ -142,7 +142,7 @@ export class PositionsComponent implements OnInit, OnDestroy {
         })
       )
       .subscribe(displayHoldings => {
-        this.holdings.set(displayHoldings);
+        this.positions.set(displayHoldings);
       });
   }
 }
