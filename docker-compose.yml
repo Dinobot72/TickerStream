@@ -1,0 +1,31 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: tickerstream-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      # Persist the SQLite database file
+      - bot_data:/app/data
+      # OPTIONAL: Mount source code for live reloading (Dev only)
+      # - ./backend:/app/backend
+      # - ./model:/app/model
+    environment:
+      - DATABASE_URL=sqlite:////app/data/stockBot.db
+    restart: always
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: tickerstream-frontend
+    ports:
+      - "4200:80" # Map host port 4200 to container port 80
+    depends_on:
+      - backend
+    restart: always
+
+volumes:
+  bot_data:

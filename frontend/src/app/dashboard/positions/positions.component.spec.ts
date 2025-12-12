@@ -117,7 +117,7 @@ describe('PositionsComponent', () => {
             const req = httpMock.expectOne(`${apiUrl}/holdings/${testUserId}`);
             req.flush([]); // Empty holdings
 
-            expect(component.holdings().length).toBe(0);
+            expect(component.positions().length).toBe(0);
             expect(component.isLoading()).toBe(false);
         });
 
@@ -135,7 +135,7 @@ describe('PositionsComponent', () => {
             httpMock.expectOne(`${apiUrl}/stock/AAPL`).flush(mockAaplPrice);
             httpMock.expectOne(`${apiUrl}/stock/GOOG`).flush(mockGoogPrice);
 
-            const holdings = component.holdings();
+            const holdings = component.positions();
             expect(holdings.length).toBe(2);
             
             const aaplHolding = holdings.find(h => h.ticker === 'AAPL')!;
@@ -159,7 +159,7 @@ describe('PositionsComponent', () => {
             httpMock.expectOne(`${apiUrl}/holdings/${testUserId}`).flush('Error', { status: 500, statusText: 'Server Error' });
 
             expect(component.error()).toBe('Failed to load positions. Please try again.');
-            expect(component.holdings().length).toBe(0);
+            expect(component.positions().length).toBe(0);
             expect(component.isLoading()).toBe(false);
         });
 
@@ -170,7 +170,7 @@ describe('PositionsComponent', () => {
             httpMock.expectOne(`${apiUrl}/holdings/${testUserId}`).flush(mockApiHoldings);
             httpMock.expectOne(`${apiUrl}/stock/BAD`).flush({}, { status: 404, statusText: 'Not Found' });
 
-            const holdings = component.holdings();
+            const holdings = component.positions();
             expect(holdings.length).toBe(1);
             const badHolding = holdings[0];
             // Per component logic, a failed price fetch results in a price of 0
