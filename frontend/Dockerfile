@@ -1,26 +1,31 @@
-FROM node:20 AS build
+# STAGE 1: Build the App
+FROM node:20-alpine AS build
 
 WORKDIR /app
 
-# Copy package files and install dependencies
+# Install dependencies
 COPY package.json yarn.lock ./
-RUN yarn install
+RUN yarn install --frozen-lockfile
 
 # Copy source code and build
 COPY . .
-# Use production configuration
 RUN yarn build --configuration production
 
-# STAGE 2: Serve with Nginx
-FROM nginx:alpine
+# STAGE 2: Run the SSR Server
+FROM node:20-alpine
 
-# Copy the built app from the previous stage
-# NOTE: Check your 'angular.json' "outputPath" if this path differs!
-# Based on your package.json name, it's likely 'dist/stock-bot/browser' or 'dist/stock-bot'
-COPY --from=build /app/dist/stockBot/browser /usr/share/nginx/html
+WORKDIR /app
 
-# Copy custom Nginx config (created in step 3)
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy the built application from the 'build' stage
+# We copy the entire 'stockBot' folder which contains both 'server' and 'browser' directories
+COPY --from=build /app/dist/stockBot /app/dist/stockBot
 
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+# Set environment variables
+ENV PORT=4000
+ENV NODE_ENV=production
+
+# Expose the port defined in server.ts (default is 4000)
+EXPOSE 4000
+
+# Start the server
+CMD ["node", "dist/stockBot/server/server.mjs"]
