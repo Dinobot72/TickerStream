@@ -17,7 +17,7 @@ FROM nginx:alpine
 # Copy the built app from the previous stage
 # NOTE: Check your 'angular.json' "outputPath" if this path differs!
 # Based on your package.json name, it's likely 'dist/stock-bot/browser' or 'dist/stock-bot'
-COPY --from=build /app/dist/stockBot/browser /usr/share/nginx/html8
+COPY --from=build /app/dist/stockBot/browser /usr/share/nginx/html
 
 # Copy custom Nginx config (created in step 3)
 COPY nginx.conf /etc/nginx/conf.d/default.conf
