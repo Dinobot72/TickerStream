@@ -14,7 +14,7 @@ describe('TradingComponent', () => {
   let authService: jasmine.SpyObj<AuthService>;
   let activatedRoute: ActivatedRoute;
 
-  const apiUrl = 'http://localhost:8000/api';
+  const apiUrl = '/api';
 
   beforeEach(async () => {
     const authServiceSpy = jasmine.createSpyObj('AuthService', ['currentUserId']);

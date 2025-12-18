@@ -17,7 +17,7 @@ import { catchError, finalize, of, tap } from 'rxjs'; // Added RxJS operators
 export class SettingsComponent implements OnInit { // Implements OnInit
     private http = inject(HttpClient);
     private auth = inject(AuthService);
-    private apiUrl = 'http://localhost:8000/api';
+    private apiUrl = '/api';
 
     // --- User Profile ---
     username = signal('loading...'); // Initial state

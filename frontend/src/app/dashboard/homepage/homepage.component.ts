@@ -62,7 +62,7 @@ Chart.register( ...registerables);
 export class HomepageComponent implements OnInit, OnDestroy {
 
     // --- Injected Dependencies (From previous file) ---
-    private apiUrl = 'http://localhost:8000/api'; 
+    private apiUrl = '/api'; 
     private router = inject(Router);
     private platformId = inject(PLATFORM_ID);
     isBotActive: Observable<boolean>;

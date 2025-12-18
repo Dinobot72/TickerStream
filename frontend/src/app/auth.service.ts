@@ -11,7 +11,7 @@ import { response } from 'express';
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = 'http://localhost:8000/api';
+  private apiUrl = '/api';
   private isBrowser?: boolean;
 
   isLoggedIn = signal<boolean>(false);
@@ -63,6 +63,10 @@ export class AuthService {
   }
 
   checkAuthStatus(): Observable<boolean> {
+    if (!this.isBrowser) {
+        return of(false);
+    }
+
     return this.http.get<{authenticated: boolean, user: any}>(`${this.apiUrl}/auth/status`, {
       withCredentials: true
     }).pipe(

@@ -1,7 +1,8 @@
-import { Injectable } from "@angular/core";
+import { Inject, Injectable, PLATFORM_ID } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
 import { BehaviorSubject, Observable, of } from "rxjs";
 import { catchError, tap } from "rxjs/operators";
+import { isPlatformBrowser } from "@angular/common";
 
 export interface BotStatus {
     status: string;
@@ -20,18 +21,27 @@ export class BotStatusService {
     private readonly botStatusMessageSubject = new BehaviorSubject<string>('Initializing...');
     public readonly botStatusMessage$: Observable<string> = this.botStatusMessageSubject.asObservable();
 
-    private apiUrl = 'http://localhost:8000/api/bot';
+    private apiUrl = '/api/bot';
 
 
-    constructor(private http: HttpClient) {
-    // You can optionally check the status once when the service is first created.
-    this.checkBotStatus().subscribe();
+    constructor(
+        private http: HttpClient,
+        @Inject(PLATFORM_ID) private platformId: Object
+    )   {
+        // FIX: Only check status if we are in the Browser
+        if (isPlatformBrowser(this.platformId)) {
+            this.checkBotStatus().subscribe();
+        }
     }
 
     /**
      * Gets the current bot status from the backend and updates the subjects.
      */
     checkBotStatus(): Observable<BotStatus | null> {
+        if (!isPlatformBrowser(this.platformId)) {
+            return of(null);
+        }
+        
         return this.http.get<BotStatus>(`${this.apiUrl}/status`, { withCredentials: true }).pipe(
             tap(status => {
                 console.log("status update", status);
