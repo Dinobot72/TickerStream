@@ -100,7 +100,7 @@ describe('DashboardComponent', () => {
 
             fixture.detectChanges(); // ngOnInit -> fetchUserName
 
-            const req = httpMock.expectOne(`http://localhost:8000/api/user/${testUserId}`);
+            const req = httpMock.expectOne(`/api/user/${testUserId}`);
             expect(req.request.method).toBe('GET');
             expect(req.request.withCredentials).toBe(true);
 
@@ -113,7 +113,7 @@ describe('DashboardComponent', () => {
             const testUserId = 'user-123';
             authService.currentUserId.set(testUserId);
             fixture.detectChanges(); // ngOnInit -> fetchUserName
-            const req = httpMock.expectOne(`http://localhost:8000/api/user/${testUserId}`);
+            const req = httpMock.expectOne(`/api/user/${testUserId}`);
             req.flush('Server error', { status: 500, statusText: 'Internal Server Error' });
             expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to fetch user name', jasmine.any(Object));
             expect(component.userName()).toBe('User');

@@ -27,7 +27,7 @@ describe('PositionsComponent', () => {
     let fixture: ComponentFixture<PositionsComponent>;
     let httpMock: HttpTestingController;
     let authService: MockAuthService;
-    const apiUrl = 'http://localhost:8000/api';
+    const apiUrl = '/api';
     const testUserId = 'user-pos-123';
 
     beforeEach(async () => {

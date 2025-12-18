@@ -29,7 +29,7 @@ export class TradingComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private http = inject(HttpClient);
   private auth = inject(AuthService);
-  private apiUrl = 'http://localhost:8000/api';
+  private apiUrl = '/api';
   
 
   tradeAction = signal<'BUY' | 'SELL'>('BUY');

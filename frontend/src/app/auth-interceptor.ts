@@ -6,7 +6,7 @@ import { AuthService } from './auth.service';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
-  if ( req.url.startsWith('http://localhost:8000/api/')) {
+  if ( req.url.startsWith('/api/')) {
     const authReq = req.clone({
         withCredentials: true,
     });
