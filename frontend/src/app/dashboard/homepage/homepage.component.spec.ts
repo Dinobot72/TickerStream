@@ -49,7 +49,7 @@ describe('HomepageComponent', () => {
     let botStatusService: MockBotStatusService;
     let router: Router;
 
-    const apiUrl = 'http://localhost:8000/api';
+    const apiUrl = '/api';
     const testUserId = 'user-home-123';
 
     // Spy on Chart.js
