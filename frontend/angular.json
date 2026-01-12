@@ -84,6 +84,8 @@
             "tsConfig": "tsconfig.spec.json",
             "karmaConfig": "karma.config.js",
             "inlineStyleLanguage": "scss",
+            "codeCoverage": true,
+            "progress": true,
             "assets": [
               {
                 "glob": "**/*",
