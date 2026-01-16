@@ -22,7 +22,7 @@ class MockSidebarComponent {}
 @Component({selector: 'homepage', standalone: true, template: ''})
 class MockHomepageComponent {}
 
-fdescribe('DashboardComponent', () => {
+describe('DashboardComponent', () => {
     let component: DashboardComponent;
     let fixture: ComponentFixture<DashboardComponent>;
     let httpMock: HttpTestingController;
