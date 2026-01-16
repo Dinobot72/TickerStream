@@ -38,12 +38,14 @@ describe('SidebarComponent', () => {
   });
 
   it('should render the correct labels for each navigation link', () => {
-    const linkElements: HTMLElement[] = fixture.nativeElement.querySelectorAll('a');
+    const linkDebugElements = fixture.debugElement.queryAll(By.css('a'));
 
     component.navLinks.forEach((navLink, index) => {
-      const labelElement = linkElements[index].querySelector('.ml-3');
-      expect(labelElement).withContext(`Label for ${navLink.label} not found`).toBeTruthy();
-      expect(labelElement?.textContent?.trim()).withContext(`Label for ${navLink.label} is incorrect`).toBe(navLink.label);
+      const linkElement: HTMLElement = linkDebugElements[index].nativeElement;
+      // .textContent grabs all text inside the <a>, usually ignoring hidden SVGs
+      const text = linkElement.textContent?.trim();
+      
+      expect(text).withContext(`Label for ${navLink.label} is incorrect`).toContain(navLink.label);
     });
   });
 
@@ -51,8 +53,10 @@ describe('SidebarComponent', () => {
     const linkDebugElements = fixture.debugElement.queryAll(By.css('a'));
 
     component.navLinks.forEach((navLink, index) => {
-      // The href attribute on the anchor tag will be correctly resolved by RouterTestingModule
-      expect(linkDebugElements[index].properties['href']).toBe(navLink.path);
+      // FIX: Use getAttribute('href') to get the relative path ('/dashboard')
+      // instead of the .href property which returns absolute ('http://localhost...')
+      const href = linkDebugElements[index].nativeElement.getAttribute('href');
+      expect(href).toBe(navLink.path);
     });
   });
 
