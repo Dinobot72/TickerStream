@@ -34,7 +34,7 @@ jobs:
 
     - name: Run Angular Tests
       
-      run: npx ng test --no-watch --code-coverage --browsers=ChromeHeadless
+      run: npx ng test --no-watch --code-coverage --browsers=ChromeHeadlessCI
 
     - name: Upload Frontend Coverage Report
       uses: actions/upload-artifact@v4
