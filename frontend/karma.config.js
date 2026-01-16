@@ -35,6 +35,12 @@ module.exports = function (config) {
     autoWatch: true,
     browsers: ['ChromeHeadless'], // <--- IMPORTANT: Use Headless for CI/WSL
     singleRun: false,
-    restartOnFileChange: true
+    restartOnFileChange: true,
+    customLaunchers: {
+      ChromeHeadlessCI: {
+        base: 'ChromeHeadless',
+        flags: ['--no-sandbox']
+      }
+    },
   });
 };
