@@ -1,10 +1,9 @@
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, signal, OnInit, Injectable, Input, inject, PLATFORM_ID, OnDestroy } from '@angular/core';
-import { RouterModule, Router, NavigationEnd } from '@angular/router'; // Added RouterModule and Router for navigation/link
-import { HttpClient } from '@angular/common/http'; // Added HttpClient for API calls
-import { MatGridListModule } from '@angular/material/grid-list'; // Preserved old imports
-import { MatButtonModule } from '@angular/material/button'; // Preserved old imports
-// Assuming AuthService is available in the project structure
+import { RouterModule, Router, NavigationEnd } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
+import { MatGridListModule } from '@angular/material/grid-list';
+import { MatButtonModule } from '@angular/material/button';
 import { AuthService } from '../../auth.service'; 
 import { BotStatusService } from '../../services/bot-status.service';
 import { catchError, forkJoin, map, Observable, of, switchMap } from 'rxjs';
@@ -12,21 +11,21 @@ import { Chart, ChartConfiguration, registerables } from 'chart.js';
 import { fork } from 'child_process';
 
 
-// Define interface for Holding data (Same as old, matched new structure)
+// Define interface for Holding data
 interface Holding {
     ticker: string;
     quantity: number;
     purchase_price: number;
 }
 
-// Define interface for Activity data (Merged: Used new fields/types, added old file's implicit field)
+// Define interface for Activity data 
 interface Activity {
-    action: 'BUY' | 'SELL' | string; // Keep string to allow non-enum actions from API
+    action: 'BUY' | 'SELL' | string;
     ticker: string;
-    quantity: number; // Changed to number to match new file and for calculation ease
+    quantity: number;
     price: number;
     is_bot_trade: boolean;
-    timestamp?: string; // Made optional as old Activity interface didn't have it
+    timestamp?: string;
 }
 
 // Interface for Market data (From new file)
@@ -47,13 +46,13 @@ interface TrendingStock {
 Chart.register( ...registerables);
 
 @Component({
-    selector: 'homepage', // Use the new selector
+    selector: 'homepage',
     standalone: true,
     imports: [
         CommonModule,
-        RouterModule, // For routerLink
-        MatGridListModule, // Preserved old import
-        MatButtonModule, // Preserved old import
+        RouterModule,
+        MatGridListModule,
+        MatButtonModule,
     ],
     templateUrl: './homepage.component.html',
     styleUrls: ['./homepage.component.scss'],
@@ -152,7 +151,7 @@ export class HomepageComponent implements OnInit, OnDestroy {
 
     // Old file's Portfolio Change (Needed for old HTML's gauge)
     portfolioChange = computed(() => {
-        const totalValue = this.portfolioValue();
+        const totalValue = this.portfolioValueLive();
         const initialValue = this.portfolioHoldings().reduce((acc, holding) => acc + (holding.quantity * holding.purchase_price), 0);
         if (initialValue === 0) return 0;
         return ((totalValue - initialValue) / initialValue) * 100;
@@ -193,6 +192,8 @@ export class HomepageComponent implements OnInit, OnDestroy {
 
     // --- Lifecycle Hook (From previous file) ---
     ngOnInit(): void {
+        console.log(this.platformId);
+        console.log(isPlatformBrowser(this.platformId));
         if (isPlatformBrowser(this.platformId)) {
             this.fetchUserData();
             this.fetchPortfolio();
@@ -245,8 +246,10 @@ export class HomepageComponent implements OnInit, OnDestroy {
                                 return { ticker, price };
                             }),
                             catchError(err => {
+                                // Handle errors
+                                
                                 console.error(`Failed to fetch price for ${ticker}`, err);
-                                return of({ ticker, price: 0 }); // Default to 0 on error
+                                return of({ ticker, price: 0 });
                             })
                         )
                     );

@@ -1,11 +1,11 @@
 import { provideZonelessChangeDetection } from '@angular/core';
+import { BotStatusService } from './services/bot-status.service';
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { App } from './app';
 import { provideRouter } from '@angular/router';
 import { of, Subject, throwError } from 'rxjs';
-import { error } from 'console';
 
 class MockBotStatusService {
     private statusSubject = new Subject<boolean>();
@@ -17,7 +17,6 @@ class MockBotStatusService {
     }
 }
 
-import { BotStatusService } from './services/bot-status.service';
 
 describe('App', () => {
   let botStatusServiceSpy: jasmine.SpyObj<BotStatusService>;
@@ -27,6 +26,7 @@ describe('App', () => {
     botStatusServiceSpy = jasmine.createSpyObj('BotStatusService', ['checkBotStatus']);
     botStatusServiceSpy.checkBotStatus.and.returnValue(of({ status: 'active', message: 'Bot is running' }));
 
+    (botStatusServiceSpy as any).botStatus$ = of(true);
     await TestBed.configureTestingModule({
       imports: [App],
       providers: [
@@ -44,6 +44,9 @@ describe('App', () => {
   it('should create the app', () => {
     const fixture = TestBed.createComponent(App);
     const app = fixture.componentInstance;
+
+    fixture.detectChanges();
+
     expect(app).toBeTruthy();
     expect(botStatusServiceSpy.checkBotStatus).toHaveBeenCalled();
   });
