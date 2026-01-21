@@ -1,25 +1,65 @@
 import { provideZonelessChangeDetection } from '@angular/core';
+import { BotStatusService } from './services/bot-status.service';
 import { TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { App } from './app';
+import { provideRouter } from '@angular/router';
+import { of, Subject, throwError } from 'rxjs';
+
+class MockBotStatusService {
+    private statusSubject = new Subject<boolean>();
+    botStatus$ = this.statusSubject.asObservable();
+
+    // Method to control the mock's emitted value
+    setBotStatus(isActive: boolean) {
+        this.statusSubject.next(isActive);
+    }
+}
+
 
 describe('App', () => {
+  let botStatusServiceSpy: jasmine.SpyObj<BotStatusService>;
+  let httpTestingController: HttpTestingController;
+
   beforeEach(async () => {
+    botStatusServiceSpy = jasmine.createSpyObj('BotStatusService', ['checkBotStatus']);
+    botStatusServiceSpy.checkBotStatus.and.returnValue(of({ status: 'active', message: 'Bot is running' }));
+
+    (botStatusServiceSpy as any).botStatus$ = of(true);
     await TestBed.configureTestingModule({
       imports: [App],
-      providers: [provideZonelessChangeDetection()]
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideZonelessChangeDetection(),
+        provideRouter([]), // Provide an empty router for testing
+        { provide: BotStatusService, useValue: botStatusServiceSpy } // Use the spy
+      ]
     }).compileComponents();
+
+    httpTestingController = TestBed.inject(HttpTestingController);
   });
 
   it('should create the app', () => {
     const fixture = TestBed.createComponent(App);
     const app = fixture.componentInstance;
+
+    fixture.detectChanges();
+
     expect(app).toBeTruthy();
+    expect(botStatusServiceSpy.checkBotStatus).toHaveBeenCalled();
   });
 
-  it('should render title', () => {
+  it('should log an error if bot status check fails', () => {
+    const consoleErrorSpy = spyOn(console, 'error');
+    botStatusServiceSpy.checkBotStatus.and.returnValue(throwError(() => new Error('Bot status check failed')));
+
     const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+    expect(app).toBeTruthy();
     fixture.detectChanges();
-    const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain('Hello, stockBot');
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to fetch bot status', jasmine.any(Error));
   });
 });

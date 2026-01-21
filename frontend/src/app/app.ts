@@ -14,6 +14,7 @@ export class App implements OnInit {
   constructor(private botStatusService: BotStatusService) { }
 
   ngOnInit() {
+    console.log('Checking bot status...');
     this.botStatusService.checkBotStatus().subscribe({
       error: (err) => console.error('Failed to fetch bot status', err)
     });

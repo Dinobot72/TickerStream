@@ -4,7 +4,8 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, time
+from zoneinfo import ZoneInfo
 from pydantic import BaseModel
 from typing import List, Dict, Optional
 import asyncio
@@ -91,6 +92,7 @@ app = FastAPI()
 origins = [
     "http://localhost:4200",
     "http://127.0.0.1:4200",
+    "http://54.165.132.147",
 ]
 
 app.add_middleware(
@@ -225,7 +227,13 @@ async def run_trading_bot():
     """
     BOT_USER_ID = 11  # The user ID the bot trades for
     await asyncio.sleep(5)  # Wait for DB to initialize
-    print("--- 🤖 Trading Bot Activated ---")
+    print("--- Trading Bot Activated ---")
+
+    MARKET_OPEN = time(9, 30)
+    MARKET_CLOSE = time(16, 0)
+    NY_TZ = ZoneInfo("America/New_York")
+
+    
     
     # 1. Start with your hardcoded or config defaults
     WATCHLIST = ["AAPL", "MSFT", "GOOG", "TSLA", "NVDA"]
@@ -260,6 +268,17 @@ async def run_trading_bot():
             if not BOT_ACTIVE:
                 # If off, sleep and check again later
                 await asyncio.sleep(5) 
+                continue
+
+            # 2. Check Market Hours
+            now = datetime.now(NY_TZ)
+            is_weekday = now.weekday() < 5 # 0=Mon, 4=Fri
+            is_market_open = MARKET_OPEN <= now.time() <= MARKET_CLOSE
+
+            if not (is_weekday and is_market_open):
+                print(f"Bot: Market closed ({now.strftime('%H:%M')}). Sleeping...")
+                # Sleep for 5 minutes instead of 1 minute to save resources
+                await asyncio.sleep(300) 
                 continue
 
             # Iterate through each stock in the watchlist
@@ -322,8 +341,8 @@ async def run_trading_bot():
         except Exception as e:
             print(f"Bot Error: {e}")
         
-        # Sleep for 60 seconds before next check
-        await asyncio.sleep(60)
+        # Sleep for 150 seconds before next check
+        await asyncio.sleep(150)
 
 @app.on_event("startup")
 def on_startup():
