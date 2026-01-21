@@ -159,8 +159,8 @@
                     } @else {<div class="status-indicator" style="margin-left: 5px;"><span class="status-dot"></span></div>}
                 </a>
             </h2>
-            <div style="display: flex; flex-direction: row;">
-                <div style="flex-grow: 1;">
+            <div style="display: flex; flex-direction: row; ">
+                <div style="flex-grow: 1; max-height: 30vh; overflow-y: auto;">
                     @if (!recentActivity()?.length) {
                         <p class="empty-list-message" style="padding: 1rem 0;">No recent activity found.</p>
                     } @else {

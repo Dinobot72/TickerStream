@@ -87,7 +87,7 @@ export class AuthService {
     );
   }
 
-  isAuthenticated(): boolean {
-    return this.isLoggedIn();
+  isAuthenticated(): Observable<boolean> {
+    return this.checkAuthStatus();
   }
 }
