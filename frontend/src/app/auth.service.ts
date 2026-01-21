@@ -5,13 +5,12 @@ import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { tap, catchError } from 'rxjs/operators';
 import { map, of, Observable } from 'rxjs';
-import { response } from 'express';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = 'http://localhost:8000/api';
+  private apiUrl = '/api';
   private isBrowser?: boolean;
 
   isLoggedIn = signal<boolean>(false);
@@ -63,18 +62,19 @@ export class AuthService {
   }
 
   checkAuthStatus(): Observable<boolean> {
+    if (!this.isBrowser) {
+        return of(false);
+    }
+
     return this.http.get<{authenticated: boolean, user: any}>(`${this.apiUrl}/auth/status`, {
       withCredentials: true
     }).pipe(
       tap(response => {
-        console.log('Auth status response:', response);
         if (response.authenticated) {
           this.isLoggedIn.set(true);
           this.currentUserId.set(response.user.user_id);
           this.currentUsername.set(response.user.username);
-          console.log('User authenticated');
         } else {
-          console.log('User not authenticated');
           this.clearAuthState();
         }
       }),

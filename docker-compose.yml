@@ -1,0 +1,48 @@
+services:
+  gateway:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - ticker-network
+      
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: tickerstream-backend
+    expose:
+      - "8000"
+    volumes:
+      - bot_data:/app/data
+    environment:
+      - DATABASE_URL=sqlite:////app/data/stockBot.db
+    networks:
+      - ticker-network
+    restart: always
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: tickerstream-frontend
+    ports:
+      - "80:4000"
+    depends_on:
+      - backend
+    networks:
+      - ticker-network
+    restart: always
+
+volumes:
+  bot_data:
+
+networks:
+  ticker-network:
+    driver: bridge
+    
