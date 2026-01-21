@@ -47,10 +47,10 @@ export class PositionsComponent implements OnInit, OnDestroy {
   private http = inject(HttpClient);
   private auth = inject(AuthService);
   private platformId = inject(PLATFORM_ID);
-  private apiUrl = 'http://localhost:8000/api';
+  private apiUrl = '/api';
   
   // Placeholder data
-  holdings = signal<DisplayHolding[]>([]);
+  positions = signal<DisplayHolding[]>([]);
   isLoading = signal(false);
   error = signal<string | null>(null);
 
@@ -142,7 +142,7 @@ export class PositionsComponent implements OnInit, OnDestroy {
         })
       )
       .subscribe(displayHoldings => {
-        this.holdings.set(displayHoldings);
+        this.positions.set(displayHoldings);
       });
   }
 }

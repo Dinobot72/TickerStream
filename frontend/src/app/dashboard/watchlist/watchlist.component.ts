@@ -53,7 +53,7 @@ export class WatchlistComponent implements OnInit, OnDestroy { // Implements OnI
     private http = inject(HttpClient);
     private auth = inject(AuthService);
     private platformId = inject(PLATFORM_ID);
-    private apiUrl = 'http://localhost:8000/api';
+    private apiUrl = '/api';
 
     watchlistItems = signal<WatchlistItem[]>([]);
     newTicker = signal('');
