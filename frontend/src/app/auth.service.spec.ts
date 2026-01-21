@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { AuthService } from './auth.service';
 import { provideRouter } from '@angular/router';
 import { PLATFORM_ID } from '@angular/core';
+import { of } from 'rxjs';
 
 describe('AutheService', () => {
     let httpTesting: HttpTestingController;
@@ -123,11 +124,27 @@ describe('AutheService', () => {
   });
 
   it('should check authentication status via isAuthenticated helper', () => {
-    service.isLoggedIn.set(true);
-    expect(service.isAuthenticated()).toBe(true);
-    
-    service.isLoggedIn.set(false);
-    expect(service.isAuthenticated()).toBe(false);
+    // 1. Call the function
+    service.isAuthenticated().subscribe(isAuthenticated => {
+      // 4. Assert the value returned from the observable
+      expect(isAuthenticated).toBe(true);
+    });
+
+    // 2. Expect the HTTP request that checkAuthStatus() generates
+    const req = httpTesting.expectOne('/api/auth/status');
+    expect(req.request.method).toBe('GET');
+
+    // 3. Flush the response (simulating the server saying "Yes, logged in")
+    req.flush({ authenticated: true, user: { user_id: '123', username: 'test' } });
+  });
+
+  it('should return false from isAuthenticated helper when server says unauthenticated', () => {
+    service.isAuthenticated().subscribe(isAuthenticated => {
+      expect(isAuthenticated).toBe(false);
+    });
+
+    const req = httpTesting.expectOne('/api/auth/status');
+    req.flush({ authenticated: false });
   });
 });
 
