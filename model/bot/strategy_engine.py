@@ -41,7 +41,7 @@ def get_bot_decision(balance: float, shares_held: int, market_data: dict):
     ], dtype=np.float32)
 
     # Ask the AI for a prediction
-    action, _states = model.predict(observation, deterministic=True)
+    action, _states = model.predict(observation, deterministic=True, verbose=0)
 
     action_map = {0: 'BUY', 1: 'SELL', 2: 'HOLD'}
     decision = action_map.get(int(action), 'UNKNOWN')

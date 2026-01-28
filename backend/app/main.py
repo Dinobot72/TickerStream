@@ -14,11 +14,11 @@ import sys
 import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
-from model.bot.strategy_engine import get_bot_decision
+from .services.ai_bridge import predict_action
 
-from .database import get_db_connection, setup_database
-from .services import get_stock_data, get_stock_metrics, get_historical_data, get_full_market_data
-
+from .core.database import get_db_connection, setup_database
+from .services.services import get_stock_metrics, get_historical_data
+from .services.market_data import get_stock_data, get_full_market_data
 # --- Security Configuration ---
 SECRET_KEY = "604f4b0bb91cbf5d981f3152a0b2223eceaf22f18df22d1e7511a835da818a20"
 ALGORITHM = "HS256"
@@ -306,7 +306,7 @@ async def run_trading_bot():
                 current_price = market_data['Close']
 
                 # 3. Get AI Decision
-                decision_result = get_bot_decision(balance, shares_held, market_data)
+                decision_result = predict_action(balance, shares_held, market_data)
                 decision = decision_result.get("decision")
                 
                 # 4. Calculate Quantity (The "How Much" Logic)
@@ -700,7 +700,7 @@ def stop_bot(current_user: dict = Depends(get_current_user)):
 def make_decision(state: PortfolioState, current_user: dict = Depends(get_current_user)):
     try:
         market_data = get_full_market_data("AAPL")
-        decision_result = get_bot_decision(state.balance, state.shares_held, market_data)
+        decision_result = predict_action(state.balance, state.shares_held, market_data)
         if "error" in decision_result:
             raise HTTPException(status_code=500, detail=decision_result["error"])
         return decision_result

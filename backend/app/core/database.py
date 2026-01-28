@@ -1,4 +1,7 @@
 import sqlite3 as sql
+import os
+
+DB_PATH = os.path.join(os.path.dirname(__file__), '..', '..', 'tickerstream.db')
 
 def get_db_connection():
     conn = sql.connect("stockBot.db")
