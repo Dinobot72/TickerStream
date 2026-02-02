@@ -4,7 +4,7 @@ import os
 DB_PATH = os.path.join(os.path.dirname(__file__), '..', '..', 'tickerstream.db')
 
 def get_db_connection():
-    conn = sql.connect("stockBot.db")
+    conn = sql.connect(DB_PATH)
     conn.row_factory = sql.Row
     return conn
 

@@ -199,6 +199,7 @@ export class HomepageComponent implements OnInit, OnDestroy {
             this.fetchPortfolio();
             this.fetchMetrics();
             this.fetchActivity();
+            this.fetchTrendingStocks();
         }
     }
 
@@ -308,9 +309,19 @@ export class HomepageComponent implements OnInit, OnDestroy {
             next: (data) => {
                 // Update both old and new activity signals (only new one is likely used in the merged HTML)
                 this.botActivity.set(data);
+                console.log(data)
                 this.recentActivity.set(data);
             },
             error: (err) => console.error('Failed to fetch activity', err)
+        });
+    }
+
+    fetchTrendingStocks(): void {
+        this.http.get<TrendingStock[]>(`${this.apiUrl}/market/gainers`, {withCredentials: true}).subscribe({
+            next: (data) => {
+                this.trendingStocks.set(data);
+            },
+            error: (err) => console.error('Failed to fetch trending stocks', err)
         });
     }
 
@@ -452,56 +463,62 @@ export class HomepageComponent implements OnInit, OnDestroy {
         });
 
         // 4. Destroy old chart if exists
-        if (this.chart) this.chart.destroy();
+        if (this.chart) {
+            // this.chart.data.labels = labels;
+            this.chart.data.datasets = datasets
+            // this.chart.destroy();
+        } else {
 
-        const config: ChartConfiguration = {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: datasets // Pass the array of datasets here
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: {
-                    mode: 'index', // Hovering shows data for all stocks at that time
-                    intersect: false,
+            const config: ChartConfiguration = {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: datasets // Pass the array of datasets here
                 },
-                plugins: {
-                    legend: { 
-                        display: true, // Show the legend now!
-                        labels: { color: '#94A3B8' }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index', // Hovering shows data for all stocks at that time
+                        intersect: false,
                     },
-                    tooltip: {
-                        callbacks: {
-                            // Format tooltip to show Currency
-                            label: (context) => {
-                                let label = context.dataset.label || '';
-                                if (label) {
-                                    label += ': ';
+                    plugins: {
+                        legend: { 
+                            display: true, // Show the legend now!
+                            labels: { color: '#94A3B8' }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                // Format tooltip to show Currency
+                                label: (context) => {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(context.parsed.y);
+                                    }
+                                    return label;
                                 }
-                                if (context.parsed.y !== null) {
-                                    label += new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(context.parsed.y);
-                                }
-                                return label;
                             }
                         }
-                    }
-                },
-                scales: {
-                    x: { 
-                        grid: { color: 'rgba(255,255,255,0.05)' },
-                        ticks: { color: '#94A3B8', maxTicksLimit: 8 } 
                     },
-                    y: { 
-                        grid: { color: 'rgba(255,255,255,0.05)' },
-                        ticks: { color: '#94A3B8' } 
+                    scales: {
+                        x: { 
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: '#94A3B8', maxTicksLimit: 8 } 
+                        },
+                        y: { 
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: '#94A3B8' } 
+                        }
                     }
                 }
-            }
-        };
+            };
 
-        this.chart = new Chart("LiveChart", config);
+            this.chart = new Chart("LiveChart", config);
+        }
+
     }
 
     private getChartColor(index: number): string {
