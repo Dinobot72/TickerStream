@@ -1,4 +1,5 @@
 import yfinance as yf
+from yfinance import EquityQuery
 
 def get_stock_data(ticker: str):
     """
@@ -17,9 +18,7 @@ def get_stock_data(ticker: str):
         return {}
 
 def get_full_market_data(ticker: str):
-    """
-    Fetches the latest OHLC data for the bot's strategy engine.
-    """
+    """Fetch OHLC data for the AI Model."""
     try:
         stock = yf.Ticker(ticker)
         # Fetch 1 day of data to ensure we get the latest candle
@@ -36,3 +35,71 @@ def get_full_market_data(ticker: str):
     except Exception as e:
         print(f"Error fetching full market data for {ticker}: {e}")
         return None
+
+def get_stock_metrics(ticker: str):
+    try:
+        stock = yf.Ticker(ticker)
+        info = stock.info
+        metrics = {
+            "market_cap": f"{info.get('marketCap'):,.2f}",
+            "pe_ratio": f"{info.get('trailingPE'):,.2f}",
+            "dividend_yield": f"{info.get('dividendYield'):,}",
+            "volume": f"{info.get('volume'):,.2f}",
+            "52_week_high": info.get('fiftyTwoWeekHigh'),
+            "52_week_low": info.get('fiftyTwoWeekLow'),
+        }
+        return metrics
+    except Exception as e:
+        print(f"Error fetching metrics for {ticker}: {e}")
+        return {}
+
+def get_historical_data(ticker: str, period: str):
+    """Fetch history for charts."""
+    interval_map = {
+        "1d": "5m",   # 1 Day -> 5 minute intervals
+        "5d": "15m",  # 1 Week -> 15 minute intervals
+        "1mo": "1d",  # 1 Month -> Daily
+        "6mo": "1d",
+        "1y": "1wk",  # 1 Year -> Weekly
+        "5y": "1mo",  # 5 Years -> Monthly
+        "max": "1mo"
+    }
+    interval = interval_map.get(period, "1d")
+
+    try:
+        stock = yf.Ticker(ticker)
+
+        hist = stock.history(period=period, interval=interval)
+
+        data = []
+
+        for index, row in hist.iterrows():
+            data.append({
+                "timestamp": index.isoformat(),
+                "price": row['Close']
+            })
+        return data
+    except Exception as e:
+        print(f"Error fetching history for {ticker}: {e}")
+        return []
+    
+def screen_stock(query: str):
+    results = yf.screen(query, size=5)
+    gainers = []
+    for stock in results['quotes'][:5]:  # Print the top 5
+        gainers.append({
+            "ticker": stock['symbol'],
+            "price": stock['regularMarketPrice'],
+            "changePct": stock['regularMarketChangePercent']
+        })
+        print(f"{stock['symbol']}: ${stock['regularMarketPrice']:.2f} +{stock['regularMarketChangePercent']:.2f}%")
+
+    return gainers
+
+if __name__ == "__main__":
+    q = EquityQuery('and', [
+       EquityQuery('gt', ['percentchange', 3]),
+       EquityQuery('eq', ['region', 'us'])
+])
+    screen_stock("day_gainers")
+    

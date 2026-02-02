@@ -1,6 +1,6 @@
 import stable_baselines3 as PPO
 import os
-from market_data import get_full_market_data, get_stock_data
+from app.services.market_data import get_full_market_data, get_stock_data
 import numpy as np
 
 

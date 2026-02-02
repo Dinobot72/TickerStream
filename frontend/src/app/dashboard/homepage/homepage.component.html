@@ -162,7 +162,7 @@
             <div style="display: flex; flex-direction: row; ">
                 <div style="flex-grow: 1; max-height: 30vh; overflow-y: auto;">
                     @if (!recentActivity()?.length) {
-                        <p class="empty-list-message" style="padding: 1rem 0;">No recent activity found.</p>
+                        <p class="empty-list-message" style="padding: 1rem;">No recent activity found.</p>
                     } @else {
                         <ul class="activity-list">
                             @for (activity of recentActivity(); track $index) {
@@ -175,11 +175,11 @@
                                             {{ activity.quantity }} {{ activity.ticker }} @ ${{ activity.price.toFixed(2) }}
                                         </span>
                                     </div>
-                                    <div class="activity-meta">
+                                    <div class="activity-meta" style="padding-right: 1rem;">
                                         @if (activity.is_bot_trade) {
                                             <span class="activity-type">Bot</span>
                                         }
-                                        <span class="activity-timestamp">{{ activity.timestamp | date:'short' }}</span>
+                                        <span class="activity-timestamp">{{ activity.timestamp | date:'short' }} </span>
                                     </div>
                                 </li>
                             }

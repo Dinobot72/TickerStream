@@ -4,14 +4,16 @@ from typing import List
 # --- Security Configuration ---
 SECRET_KEY = "***REMOVED_KEY***"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 60
 COOKIE_NAME = "access_token"
 
 # --- CORS Config --- 
 ORIGINS = [
     "http://localhost:4200",
     "http://127.0.0.1:4200",
-    "http://54.165.132.147",
+    # -- PI Addresses --
+    "http://100.85.77.37", # Tailwind IP
+    "http://151.159.128.173", # Local Wifi IP
 ]
 
 class GlobalBotState:
