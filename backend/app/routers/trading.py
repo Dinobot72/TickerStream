@@ -5,7 +5,7 @@ from typing import Optional
 from app.core.database import get_db_connection
 from app.core.config import bot_state
 from app.routers.auth import get_current_user
-from app.services.market_data import get_stock_data, get_stock_metrics, get_historical_data, get_full_market_data, screen_stock
+from app.services.market_data import get_stock_price, get_stock_metrics, get_historical_data, get_full_market_data, screen_stock_gainers, get_stock_info
 from app.services.ai_bridge import predict_action
 
 router = APIRouter()
@@ -72,7 +72,7 @@ def execute_trade(trade: Trade, current_user: dict = Depends(get_current_user)):
 
 @router.get("/api/stock/{ticker}")
 def get_stock_chart(ticker: str):
-    return get_stock_data(ticker.upper())
+    return get_stock_price(ticker.upper())
 
 @router.get("/api/stock/{ticker}/history")
 def get_stock_history(ticker: str, period: str):
@@ -90,15 +90,28 @@ def get_stock_history(ticker: str, period: str):
 
 @router.get("/api/market/gainers")
 def get_stock_gainers():
-    return screen_stock("day_gainers")
+    return screen_stock_gainers("day_gainers")
 
 @router.get("/api/market/losers")
 def get_stock_losers():
-    return screen_stock("day_losers")
+    return screen_stock_gainers("day_losers")
 
 @router.get("/api/metrics/{ticker}")
 def get_metrics(ticker: str):
     return get_stock_metrics(ticker.upper())
+
+@router.get("/api/change/{ticker}")
+def get_change_info(ticker: str):
+    stock_info = get_stock_info(ticker.upper())
+    info = {
+        # "short_name": stock_info['shortName'],
+        # "price": stock_info['RegularMarketPrice'],
+        "change_pct": stock_info['regularMarketChangePercent'],
+        "change_amt": stock_info['regularMarketChange'],
+        # "volume": stock_info['RegularMarketVolume'],
+    }
+
+    return info
 
 # --- Bot Controls ---
 @router.get("/api/bot/status")

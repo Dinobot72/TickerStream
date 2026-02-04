@@ -6,6 +6,7 @@ import { HttpClient } from "@angular/common/http"; // Added HttpClient
 import { AuthService } from "../../auth.service"; // Added AuthService
 import { forkJoin, of, Subscription, timer } from "rxjs"; // Added forkJoin, of, Subscription, timer
 import { catchError, finalize, map, switchMap, tap } from 'rxjs/operators'; // Added RxJS operators
+import { info } from "node:console";
 
 interface WatchlistApiItem {
     ticker: string;
@@ -31,6 +32,11 @@ interface StockMetric {
      dividend_yield: number;
      volume: string; // Backend formats with commas
      shortName?: string; // yfinance info often has shortName
+}
+
+interface StockChange {
+    change_amt: number;
+    change_pct: number;
 }
 
 
@@ -106,7 +112,8 @@ export class WatchlistComponent implements OnInit, OnDestroy { // Implements OnI
                     const detailRequests = tickers.map(ticker => 
                         forkJoin({
                             price: this.http.get<StockPrice>(`${this.apiUrl}/stock/${ticker}`, { withCredentials: true }).pipe(catchError(() => of({ latestPrice: 0 }))),
-                            metrics: this.http.get<StockMetric>(`${this.apiUrl}/metrics/${ticker}`, { withCredentials: true }).pipe(catchError(() => of({} as StockMetric)))
+                            metrics: this.http.get<StockMetric>(`${this.apiUrl}/metrics/${ticker}`, { withCredentials: true }).pipe(catchError(() => of({} as StockMetric))),
+                            info: this.http.get<StockChange>(`${this.apiUrl}/change/${ticker}`, { withCredentials: true }).pipe(catchError(() => of({} as StockChange)))
                         }).pipe(
                             map(details => ({ // Combine results for this ticker
                                 ticker: ticker,
@@ -114,8 +121,8 @@ export class WatchlistComponent implements OnInit, OnDestroy { // Implements OnI
                                 current_price: details.price?.latestPrice ?? 0,
                                 // Calculate change based on previous close (if available in metrics, else approximation)
                                 // Placeholder calculation: assume metrics include previous close or calculate based on open
-                                change: 0, // TODO: Calculate change properly if data allows
-                                change_pct: 0, // TODO: Calculate change % properly
+                                change: details.info?.change_amt ?? 0, // TODO: Calculate change properly if data allows
+                                change_pct: details.info?.change_pct ?? 0, // TODO: Calculate change % properly
                                 volume: parseInt((details.metrics?.volume || '0').replace(/,/g, ''), 10) || 0, // Parse volume string
                             }))
                         )
