@@ -1,7 +1,7 @@
 import yfinance as yf
 from yfinance import EquityQuery
 
-def get_stock_data(ticker: str):
+def get_stock_price(ticker: str):
     """
     Fetches historical stock data for the given ticker from Yahoo Finance.
     """
@@ -83,7 +83,7 @@ def get_historical_data(ticker: str, period: str):
         print(f"Error fetching history for {ticker}: {e}")
         return []
     
-def screen_stock(query: str):
+def screen_stock_gainers(query: str):
     results = yf.screen(query, size=5)
     gainers = []
     for stock in results['quotes'][:5]:  # Print the top 5
@@ -92,14 +92,19 @@ def screen_stock(query: str):
             "price": stock['regularMarketPrice'],
             "changePct": stock['regularMarketChangePercent']
         })
-        print(f"{stock['symbol']}: ${stock['regularMarketPrice']:.2f} +{stock['regularMarketChangePercent']:.2f}%")
 
     return gainers
 
+def get_stock_info(stock: str):
+    try:
+        stock = yf.Ticker(stock)
+        info = stock.info
+        
+        return info
+    except Exception as e:
+        print(f"Error fetching data for {stock}: {e}")
+        return {}
+
 if __name__ == "__main__":
-    q = EquityQuery('and', [
-       EquityQuery('gt', ['percentchange', 3]),
-       EquityQuery('eq', ['region', 'us'])
-])
-    screen_stock("day_gainers")
+    get_stock_info("AAPL")
     
