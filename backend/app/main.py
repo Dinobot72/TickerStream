@@ -1,13 +1,14 @@
+import asyncio
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import asyncio
 
+# Custon imports
 from app.core.config import ORIGINS
 from app.core.database import setup_database
 from app.routers import auth, portfolio, trading
 from app.tasks.scheduler import run_trading_bot
 
-app = FastAPI()
+app = FastAPI(title="TickerStream AI API", version="1.0.0", description="Operational TickerStream AI API")
 
 # Middleware
 app.add_middleware(
