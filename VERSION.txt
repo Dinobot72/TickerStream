@@ -1,0 +1,7 @@
+Ticker-Stream 
+    Version: 1.0.0
+
+    Backend
+        Vesrion: 1.0.0
+    Frontend
+        Version: 1.0.0
