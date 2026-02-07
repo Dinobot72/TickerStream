@@ -69,6 +69,17 @@ def setup_database():
             FOREIGN KEY (user_id) REFERENCES users (user_id)
         )
     ''')
+
+    # Bot Watchlist Table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS bot_watchlist (
+            user_id INTEGER NOT NULL,
+            ticker TEXT NOT NULL,
+            added_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (user_id, ticker),
+            FOREIGN KEY (user_id) REFERENCES users (user_id)
+        )
+    ''')
     
     conn.commit()
     conn.close()
