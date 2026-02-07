@@ -8,7 +8,8 @@ from app.services.market_data import get_full_market_data
 from app.services.ai_bridge import predict_action
 # Import process_trade. 
 # Note: In a larger app, we'd move process_trade to a 'services' file to avoid importing from 'routers'
-from app.routers.trading import process_trade 
+from app.routers.trading import process_trade
+from app.services.screener import run_market_scan 
 
 async def run_trading_bot():
     """
@@ -18,8 +19,11 @@ async def run_trading_bot():
     print("--- Background Trading Bot Initialized ---")
 
     BOT_USER_ID = 11
+    # Time Zone Configuration
     NY_TZ = ZoneInfo("America/New_York")
 
+    # Run Initial Scan on Startup
+    active_tickers = run_market_scan()
 
     while True:
         try:
@@ -29,11 +33,15 @@ async def run_trading_bot():
                 continue
 
             # 2. Check Market Hours (Simplified)
-            now = datetime.now(NY_TZ)
-            if not (9 <= now.hour < 16 and now.weekday() < 5):
-                print("Market Closed. Sleeping...")
-                await asyncio.sleep(300)
-                continue
+            # now = datetime.now(NY_TZ)
+            # if not (9 <= now.hour < 16 and now.weekday() < 5):
+            #     print("Market Closed. Sleeping...")
+            #     await asyncio.sleep(300)
+            #     continue
+            
+            # Refresh scan every 60 minutes
+            if datetime.now().minute == 0:
+               active_tickers = run_market_scan()
 
             # 3. Build Watchlist
             conn = get_db_connection()
@@ -42,10 +50,10 @@ async def run_trading_bot():
             held = [r['ticker'] for r in cursor.fetchall()]
             conn.close()
 
-            WATCHLIST = list(set(["AAPL", "MSFT", "GOOG", "TSLA"] + held))
+            active_tickers = list(active_tickers + held)
 
             # 4. Trade Loop
-            for ticker in WATCHLIST:
+            for ticker in active_tickers:
                 data = get_full_market_data(ticker)
                 if not data: continue
 
@@ -62,8 +70,8 @@ async def run_trading_bot():
                 conn.close()
 
                 # AI Decision
-                decision_res = predict_action(balance, shares, data)
-                action = decision_res.get("decision")
+                decision_result = predict_action(balance, shares, data)
+                action = decision_result.get("decision")
                 price = data['Close']
                 
                 qty = 0
