@@ -10,6 +10,11 @@ services:
       - backend
     networks:
       - ticker-network
+    tunnel:
+      container_name: cloudflared-tunnel
+      image: cloudflare/cloudflared:latest
+      restart: unless-stopped
+      command: tunnel --no-autoupdate run --token ***REMOVED_TOKEN***
       
   backend:
     build:
