@@ -41,12 +41,12 @@ def get_stock_metrics(ticker: str):
         stock = yf.Ticker(ticker)
         info = stock.info
         metrics = {
-            "market_cap": f"{info.get('marketCap'):,.2f}",
-            "pe_ratio": f"{info.get('trailingPE'):,.2f}",
-            "dividend_yield": f"{info.get('dividendYield'):,}",
-            "volume": f"{info.get('volume'):,.2f}",
-            "52_week_high": info.get('fiftyTwoWeekHigh'),
-            "52_week_low": info.get('fiftyTwoWeekLow'),
+            "market_cap": f"{info['marketCap']:,.2f}",
+            "pe_ratio": f"{info['trailingPE']:,.2f}",
+            "dividend_yield": f"{info['dividendYield']:,}",
+            "volume": f"{info['volume']:,.2f}",
+            "52_week_high": info['fiftyTwoWeekHigh'],
+            "52_week_low": info['fiftyTwoWeekLow'],
         }
         return metrics
     except Exception as e:
