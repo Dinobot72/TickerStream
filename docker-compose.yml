@@ -15,7 +15,9 @@ services:
     image: cloudflare/cloudflared:latest
     restart: unless-stopped
     command: tunnel --no-autoupdate run --token ***REMOVED_TOKEN***
-    
+    networks:
+      - ticker-network
+
   backend:
     build:
       context: .
@@ -27,6 +29,7 @@ services:
       - bot_data:/app/data
     environment:
       - DATABASE_URL=sqlite:////app/data/stockBot.db
+      - PYTHONPATH=/app/backend
     networks:
       - ticker-network
     restart: always
@@ -37,7 +40,7 @@ services:
       dockerfile: Dockerfile
     container_name: tickerstream-frontend
     ports:
-      - "80:4000"
+      - "8080:4000"
     depends_on:
       - backend
     networks:
