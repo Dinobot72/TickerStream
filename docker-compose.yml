@@ -52,5 +52,6 @@ volumes:
 
 networks:
   ticker-network:
+    name: ticker-network
     driver: bridge
     
