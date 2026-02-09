@@ -10,12 +10,12 @@ services:
       - backend
     networks:
       - ticker-network
-    tunnel:
-      container_name: cloudflared-tunnel
-      image: cloudflare/cloudflared:latest
-      restart: unless-stopped
-      command: tunnel --no-autoupdate run --token eyJhIjoiMzkwNjkzY2NiOWI3Y2E4MGZmZjA3MDBhM2E3ZTJkYTciLCJ0IjoiNmE2ZGEwNjAtYzZiZS00YTYwLTg0YjUtZDhkZTljMTRhZmYzIiwicyI6Ik56VTFNRFZrTlRVdFpHUmhOUzAwT1daa0xXSmtPVEF0TXpKbFpEWXhNRGMwTURoayJ9
-      
+  tunnel:
+    container_name: cloudflared-tunnel
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token eyJhIjoiMzkwNjkzY2NiOWI3Y2E4MGZmZjA3MDBhM2E3ZTJkYTciLCJ0IjoiNmE2ZGEwNjAtYzZiZS00YTYwLTg0YjUtZDhkZTljMTRhZmYzIiwicyI6Ik56VTFNRFZrTlRVdFpHUmhOUzAwT1daa0xXSmtPVEF0TXpKbFpEWXhNRGMwTURoayJ9
+    
   backend:
     build:
       context: .
