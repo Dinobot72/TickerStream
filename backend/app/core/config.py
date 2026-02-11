@@ -14,6 +14,7 @@ ORIGINS = [
     # -- PI Addresses --
     "http://100.85.77.37", # Tailwind IP
     "https://ticker-stream.com",
+    "https://auth.ticker-stream.com"
 ]
 
 class GlobalBotState:
