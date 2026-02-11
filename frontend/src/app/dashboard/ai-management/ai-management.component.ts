@@ -37,7 +37,7 @@ export class AiManagementComponent implements OnInit {
 
   private http = inject(HttpClient);
   private auth = inject(AuthService);
-  private apiUrl = '/api';
+  private apiUrl= 'https://auth.ticker-stream.com/api';
 
   // --- Bot Status ---
   // isBotActive: Observable<boolean>;

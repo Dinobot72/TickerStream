@@ -22,7 +22,7 @@ describe('WatchlistComponent', () => {
     let fixture: ComponentFixture<WatchlistComponent>;
     let httpMock: HttpTestingController;
     let authService: MockAuthService;
-    const apiUrl = '/api';
+    const apiUrl= 'https://auth.ticker-stream.com/api';
     const testUserId = 'user-123';
 
     // Helper to configure TestBed per suite

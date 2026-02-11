@@ -61,7 +61,7 @@ Chart.register( ...registerables);
 export class HomepageComponent implements OnInit, OnDestroy {
 
     // --- Injected Dependencies (From previous file) ---
-    private apiUrl = '/api'; 
+    private apiUrl= 'https://auth.ticker-stream.com/api'; 
     private router = inject(Router);
     private platformId = inject(PLATFORM_ID);
     isBotActive: Observable<boolean>;

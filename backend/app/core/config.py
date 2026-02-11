@@ -9,12 +9,10 @@ COOKIE_NAME = "access_token"
 
 # --- CORS Config --- 
 ORIGINS = [
-    "http://localhost:4200",
-    "http://127.0.0.1:4200",
-    # -- PI Addresses --
-    "http://100.85.77.37", # Tailwind IP
-    "https://ticker-stream.com",
-    "https://auth.ticker-stream.com"
+    "https://ticker-stream.com",       # Your production frontend
+    "https://auth.ticker-stream.com",  # Your production backend
+    "http://localhost:4200",           # Local development
+    "http://100.85.77.37",             # Tailscale/Local IP
 ]
 
 class GlobalBotState:
