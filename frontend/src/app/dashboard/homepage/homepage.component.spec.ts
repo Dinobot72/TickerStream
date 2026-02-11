@@ -35,7 +35,7 @@ describe('HomepageComponent', () => {
     let botStatusService: MockBotStatusService;
     let router: Router;
 
-    const apiUrl = '/api';
+    const apiUrl= 'https://auth.ticker-stream.com/api';
     const testUserId = 'user-home-123';
 
     beforeAll(() => {

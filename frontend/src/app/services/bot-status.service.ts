@@ -21,7 +21,7 @@ export class BotStatusService {
     private readonly botStatusMessageSubject = new BehaviorSubject<string>('Initializing...');
     public readonly botStatusMessage$: Observable<string> = this.botStatusMessageSubject.asObservable();
 
-    private apiUrl = '/api/bot';
+    private apiUrl = 'https://auth.ticker-stream.com/api/bot';
 
 
     constructor(
