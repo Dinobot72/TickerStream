@@ -13,7 +13,7 @@ ORIGINS = [
     "http://127.0.0.1:4200",
     # -- PI Addresses --
     "http://100.85.77.37", # Tailwind IP
-    "http://151.159.128.173", # Local Wifi IP
+    "https://ticker-stream.com",
 ]
 
 class GlobalBotState:
