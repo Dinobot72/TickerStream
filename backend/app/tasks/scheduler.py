@@ -10,6 +10,7 @@ from app.services.ai_bridge import predict_action
 # Note: In a larger app, we'd move process_trade to a 'services' file to avoid importing from 'routers'
 from app.routers.trading import process_trade
 from app.services.screener import run_market_scan 
+from app.services.portfolio_manager import PortfolioManager
 
 async def run_trading_bot():
     """
@@ -19,6 +20,11 @@ async def run_trading_bot():
     print("--- Background Trading Bot Initialized ---")
 
     BOT_USER_ID = 11
+    portfolio_mgr = PortfolioManager(
+        user_id=BOT_USER_ID, 
+        model_path="./model/newAI/logs/models/final_model",
+        db_path="./tickerstream.db"
+    )
     # Time Zone Configuration
     NY_TZ = ZoneInfo("America/New_York")
 
@@ -33,62 +39,44 @@ async def run_trading_bot():
                 continue
 
             # 2. Check Market Hours (Simplified)
-            # now = datetime.now(NY_TZ)
-            # if not (9 <= now.hour < 16 and now.weekday() < 5):
-            #     print("Market Closed. Sleeping...")
-            #     await asyncio.sleep(300)
-            #     continue
+            now = datetime.now(NY_TZ)
+            if not (9 <= now.hour < 16 and now.weekday() < 5):
+                print("Market Closed. Sleeping...")
+                await asyncio.sleep(300)
+                continue
             
             # Refresh scan every 60 minutes
             if datetime.now().minute == 0:
                active_tickers = run_market_scan()
 
             # 3. Build Watchlist
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute("SELECT DISTINCT ticker FROM holdings WHERE user_id = ?", (BOT_USER_ID,))
-            held = [r['ticker'] for r in cursor.fetchall()]
-            conn.close()
+            # conn = get_db_connection()
+            # cursor = conn.cursor()
+            # cursor.execute("SELECT DISTINCT ticker FROM holdings WHERE user_id = ?", (BOT_USER_ID,))
+            # held = [r['ticker'] for r in cursor.fetchall()]
+            # conn.close()
+            trades = portfolio_mgr.generate_trade_plan(
+                max_positions=5,
+                min_buy_confidence=0.65,
+                min_sell_confidence=0.60
+            )
 
-            active_tickers = list(active_tickers + held)
+            # active_tickers = list(active_tickers + held)
 
-            # 4. Trade Loop
-            for ticker in active_tickers:
-                data = get_full_market_data(ticker)
-                if not data: continue
-
-                # Get Balance
-                conn = get_db_connection()
-                cursor = conn.cursor()
-                cursor.execute("SELECT balance FROM portfolios WHERE user_id = ?", (BOT_USER_ID,))
-                res = cursor.fetchone()
-                balance = res['balance'] if res else 0
+            # 4. Execute each trade
+            for trade in trades:
+                ticker = trade['ticker']
+                action = trade['action']
+                qty = trade['quantity']
+                price = trade['price']
                 
-                cursor.execute("SELECT quantity FROM holdings WHERE user_id=? AND ticker=?", (BOT_USER_ID, ticker))
-                h_res = cursor.fetchone()
-                shares = h_res['quantity'] if h_res else 0
-                conn.close()
-
-                # AI Decision
-                decision_result = predict_action(balance, shares, data)
-                action = decision_result.get("decision")
-                price = data['Close']
+                print(f"🤖 BOT: {action} {qty} {ticker} @ ${price:.2f}")
+                print(f"    Reason: {trade['reason']}")
                 
-                qty = 0
-                if action == "BUY":
-                    invest_amt = balance * 0.50
-                    qty = math.floor(invest_amt / price)
-                    if qty == 0 and balance > price: qty = 1
-                elif action == "SELL":
-                    qty = shares
-                
-                if qty > 0:
-                    print(f"BOT EXECUTE: {action} {qty} {ticker}")
-                    process_trade(BOT_USER_ID, ticker, action, qty, price, True)
-
-                await asyncio.sleep(2) # Pace the api calls
+                process_trade(BOT_USER_ID, ticker, action, qty, price, True)
+                await asyncio.sleep(2)  # Rate limiting
 
         except Exception as e:
             print(f"Bot Loop Error: {e}")
         
-        await asyncio.sleep(60) # Run every minute
+        await asyncio.sleep(300) # Run every minute
