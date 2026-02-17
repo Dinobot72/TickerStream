@@ -7,6 +7,8 @@ from app.core.config import bot_state
 from app.routers.auth import get_current_user
 from app.services.market_data import get_stock_price, get_stock_metrics, get_historical_data, get_full_market_data, screen_stock_gainers, get_stock_info
 from app.services.ai_bridge import predict_action
+from app.services.risk_manager import RiskManager
+
 
 router = APIRouter()
 
@@ -24,6 +26,13 @@ class PortfolioState(BaseModel):
 
 # --- Helper Logic (Also used by Scheduler) ---
 def process_trade(user_id: int, ticker: str, action: str, quantity: int, price: float, is_bot_trade: bool):
+    # --- Risk Check ---
+    risk_manager = RiskManager(user_id)
+    allowed, message = risk_manager.can_trade(ticker, action, price, quantity)
+    if not allowed:
+        return {"error": message}
+    
+    # --- AI Prediction ---
     conn = get_db_connection()
     cursor = conn.cursor()
     
