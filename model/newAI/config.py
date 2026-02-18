@@ -4,36 +4,42 @@ import os
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 LOG_DIR = os.path.join(BASE_DIR, "../logs")
 DATA_DIR = os.path.join(BASE_DIR, "../data/train")
-MACRO_DIR = "macro"
 
-# Environment Parameters (UPDATED FOR BETTER PERFORMANCE)
+# ------------------------------------------------------------------
+# Environment Parameters
+# These must match what AdvancedTradingEnv expects
+# ------------------------------------------------------------------
 ENV_KWARGS = {
     "data_dir": DATA_DIR,
-    "macro_dir": MACRO_DIR,
     "lookback_window": 20,
-    "transaction_cost": 0.001,  # 0.1% per trade
-    "slippage": 0.001,          # 0.1% slippage estimate
+    "transaction_cost": 0.001,      # 0.1% per side
+    "slippage": 0.001,              # 0.1% slippage
     "initial_balance": 10000,
-    "max_position_pct": 0.85,    # 85% max position
-    "target_atr_mult": 1.2,     # CHANGED: Tighter targets (from 2.0)
-    "stop_atr_mult": 0.8,       # CHANGED: Tighter stops (from 1.5)
-    "pdt_min_balance": 25000,   # Pattern Day Trader rule
-    "max_day_trades": 3,
-    "reward_scaling": 10.0,     # CHANGED: Stronger signal (from 0.01)
+    "max_position_pct": 0.85,       # Use 85% of balance per trade
+    "stop_loss_pct": 0.05,          # Exit if down 5%
+    "take_profit_pct": 0.10,        # Exit if up 10%
+    "episode_length": 252,          # 1 full trading year per episode
+    "reward_scaling": 1.0,
 }
 
-# Training Hyperparameters (UPDATED)
-TOTAL_TIMESTEPS = 1_000_000     # CHANGED: Train longer (from 500k)
-TEST_TIMESTEPS = 10_000
-N_ENVS = 4                      # Number of parallel environments
-LEARNING_RATE = 3e-5            # CHANGED: Lower for stability (from 3e-4)
-BATCH_SIZE = 64
-N_STEPS = 2048                  # Steps per env per update
+# ------------------------------------------------------------------
+# Training Hyperparameters
+# ------------------------------------------------------------------
+TOTAL_TIMESTEPS = 2_000_000         # ~7,936 episodes of 252 steps
+TEST_TIMESTEPS  = 20_000            # Quick smoke test
+N_ENVS          = 8                 # Parallel environments (more = faster)
+LEARNING_RATE   = 1e-3              # Conservative - stable learning
+BATCH_SIZE      = 256               # Larger batch for stability
+N_STEPS         = 1024              # Steps per env before update
 
-# LSTM Hyperparameters
+# ------------------------------------------------------------------
+# LSTM Policy Architecture
+# Bigger LSTM = more memory for patterns across 252-day episodes
+# ------------------------------------------------------------------
 POLICY_KWARGS = {
-    "lstm_hidden_size": 128,
+    "lstm_hidden_size": 256,        # Larger than before (128 → 256)
     "n_lstm_layers": 2,
     "shared_lstm": True,
     "enable_critic_lstm": False,
+    "net_arch": [256, 128],         # Deeper network
 }
