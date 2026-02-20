@@ -59,8 +59,8 @@ def train(test_mode=False):
     print(f"   Observation size:  {AdvancedTradingEnv.OBS_DIM} features")
     print(f"   Candidates/step:   {AdvancedTradingEnv.N_CANDIDATES} stocks visible at once")
     print(f"   Episode length:    {ENV_KWARGS['episode_length']} days (1 year)")
-    print(f"   Stop loss:         {ENV_KWARGS['stop_loss_pct']*100:.0f}%")
-    print(f"   Take profit:       {ENV_KWARGS['take_profit_pct']*100:.0f}%")
+    # print(f"   Stop loss:         {ENV_KWARGS['stop_loss_pct']*100:.0f}%")
+    # print(f"   Take profit:       {ENV_KWARGS['take_profit_pct']*100:.0f}%")
     print(f"   Parallel envs:     {N_ENVS}")
     print(f"   Total timesteps:   {TOTAL_TIMESTEPS:,}")
     print(f"   Learning rate:     {LEARNING_RATE}")
@@ -73,11 +73,11 @@ def train(test_mode=False):
 
     # Training environments
     env = DummyVecEnv([make_env_fn(train_tickers) for _ in range(N_ENVS)])
-    env = VecNormalize(env, norm_obs=True, norm_reward=True, clip_obs=10.)
+    env = VecNormalize(env, norm_obs=True, norm_reward=False, clip_obs=10.)
 
     # Eval environment
     eval_env = DummyVecEnv([make_env_fn(test_tickers)])
-    eval_env = VecNormalize(eval_env, norm_obs=True, norm_reward=True, clip_obs=10.)
+    eval_env = VecNormalize(eval_env, norm_obs=True, norm_reward=False, clip_obs=10.)
 
     steps    = TEST_TIMESTEPS if test_mode else TOTAL_TIMESTEPS
     eval_freq = 1000 if test_mode else 10000
@@ -214,7 +214,7 @@ def benchmark():
         return
 
     env = DummyVecEnv([make_env_fn(test_tickers)])
-    env = VecNormalize(env, norm_obs=True, norm_reward=True, clip_obs=10.)
+    env = VecNormalize(env, norm_obs=True, norm_reward=False, clip_obs=10.)
     env.training = False
 
     obs = env.reset()
