@@ -741,7 +741,7 @@ DASHBOARD_HTML = """
                                                     color: trade.reward > 0 ? '#10b981' : trade.reward < 0 ? '#ef4444' : '#888',
                                                     fontWeight: 600
                                                 }}>
-                                                    {(trade.reward * 10000).toFixed(0)}
+                                                    {(trade.reward).toFixed(0)}
                                                 </span>
                                             </td>
                                         </tr>
