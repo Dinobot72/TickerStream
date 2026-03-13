@@ -5,3 +5,16 @@ node/
 data/
 __pycache__/*
 **/tensorboard_logs/*
+
+
+# --- AI Training --- 
+model/data
+model/logs/models
+model/logs/tensorboard
+model/logs/evaluations.npz
+model/logs/vec_normalize.pkl
+model/logs/**.csv
+model/universe.csv
+
+model/logs/**.pkl
+model/logs/plots
