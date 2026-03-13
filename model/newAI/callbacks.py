@@ -63,17 +63,24 @@ class MetricLoggerCallback(BaseCallback):
             writer.writerow(["timestep", "portfolio_value", "reward", "balance", "day_trades", "action", "ticker"])
 
     def _on_step(self) -> bool:
+        # Log every 10 timesteps
         if self.n_calls % 10 == 0:
             infos = self.locals.get('infos', [])
             if infos:
-                info = infos[0]
+                # This grabs the first environment 
+                info = infos[0] 
+
+                # open csv
                 with open(self.csv_file, 'a', newline='') as f:
                     writer = csv.writer(f)
+
+                    # --- csv write output ---
+                    # timestep, portfolio_value, reward, balance, day_trades, action, ticker
                     writer.writerow([
                         self.num_timesteps,
-                        info.get('portfolio_value', 0),
+                        round(info.get('portfolio_value', 0), 2),
                         self.locals['rewards'][0],
-                        info.get('balance', 0),
+                        round(info.get('balance', 0), 2),
                         info.get('day_trades_used', 0),
                         self.locals['actions'][0],
                         info.get('ticker', 'N/A')
