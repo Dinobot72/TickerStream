@@ -1,3 +1,4 @@
+import json
 import math
 from fastapi import FastAPI, HTTPException, Depends, Response, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -20,7 +21,7 @@ from .database import get_db_connection, setup_database
 from .services import get_stock_data, get_stock_metrics, get_historical_data, get_full_market_data
 
 # --- Security Configuration ---
-SECRET_KEY = "***REMOVED_KEY***"
+SECRET_KEY = os.getenv("***REMOVED_KEY***")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 COOKIE_NAME = "access_token"
@@ -88,12 +89,15 @@ bot_state: Dict[int, BotStatus] = {}
 
 # --- FastApi Configuration
 app = FastAPI()
-
-origins = [
-    "http://localhost:4200",
-    "http://127.0.0.1:4200",
-    "http://54.165.132.147",
-]
+origins_env = os.getenv("ALLOWED_ORIGINS")
+if origins_env:
+    origins = json.loads(origins_env)
+else:
+    origins = [
+        "http://localhost:4200",
+        "http://127.0.0.1:4200",
+        "http://54.165.132.147",
+    ]
 
 app.add_middleware(
     CORSMiddleware,
