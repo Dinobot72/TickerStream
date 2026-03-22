@@ -1,4 +1,5 @@
 import os
+import json
 from typing import List
 
 # --- Security Configuration ---
@@ -8,13 +9,19 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60
 COOKIE_NAME = "access_token"
 
 # --- CORS Config --- 
-ORIGINS = [
-    "https://ticker-stream.com",       # Your production frontend
-    "https://auth.ticker-stream.com",  # Your production backend
-    "http://localhost:4200",           # Local development
-    "http://100.85.77.37",             # Tailscale/Local IP
-]
+origins_env = os.getenv("ALLOWED_ORIGINS")
 
+if origins_env:
+    ORIGINS = json.loads(origins_env)
+else:
+    ORIGINS = [
+        "https://ticker-stream.com",       # Production frontend
+        "https://auth.ticker-stream.com",  # Production backend
+        "http://localhost:4200",           # Local development
+        "http://127.0.0.1:4200",           # Local development loopback
+        "http://100.85.77.37",             # Tailscale IP
+    ]
+    
 class GlobalBotState:
     is_active: bool = False
 
