@@ -56,7 +56,7 @@ def set_auth_cookie(response: Response, token: str):
         httponly=True,
         secure=True, 
         samesite="none",
-        domain="ticker-stream.com",
+        domain=".ticker-stream.com",
         max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         path="/"
     )
