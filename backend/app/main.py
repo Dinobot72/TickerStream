@@ -1,9 +1,8 @@
-import json
-import math
+
 from fastapi import FastAPI, HTTPException, Depends, Response, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
-from jose import JWTError, jwt
+from jwt.exceptions import PyJWTError
 from passlib.context import CryptContext
 from datetime import datetime, timedelta, timezone, time
 from zoneinfo import ZoneInfo
@@ -11,7 +10,10 @@ from pydantic import BaseModel
 from typing import List, Dict, Optional
 import asyncio
 import sqlite3
+import json
+import math
 import sys
+import jwt
 import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
@@ -174,7 +176,7 @@ async def get_current_user(
         if username is None or user_id is None:
             raise credentials_exception.detail("Could not validate Credentials, Username is none")
         
-    except JWTError as e:
+    except PyJWTError as e:
         print(f"--- JWT DECODE ERROR: {e} ---")
         raise credentials_exception
     
