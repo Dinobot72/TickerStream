@@ -1,10 +1,11 @@
 from fastapi import APIRouter, HTTPException, Depends, Response, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from jose import JWTError, jwt
+from jwt.exceptions import PyJWTError
 from passlib.context import CryptContext
 from pydantic import BaseModel
 from datetime import datetime, timedelta, timezone
 from typing import Optional
+import jwt
 
 from app.core.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, COOKIE_NAME
 from app.core.database import get_db_connection
@@ -76,7 +77,7 @@ async def get_current_user(request: Request, credentials: Optional[HTTPAuthoriza
         if username is None or user_id is None:
             raise HTTPException(status_code=401, detail="Invalid token")
         return {"username": username, "user_id": user_id}
-    except JWTError:
+    except PyJWTError:
         raise HTTPException(status_code=401, detail="Token invalid")
 
 # --- Routes ---
