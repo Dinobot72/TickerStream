@@ -3,7 +3,7 @@ import json
 from typing import List
 
 # --- Security Configuration ---
-SECRET_KEY = "604f4b0bb91cbf5d981f3152a0b2223eceaf22f18df22d1e7511a835da818a20"
+SECRET_KEY = os.getenv("SECRET_KEY", "604f4b0bb91cbf5d981f3152a0b2223eceaf22f18df22d1e7511a835da818a20")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 COOKIE_NAME = "access_token"
