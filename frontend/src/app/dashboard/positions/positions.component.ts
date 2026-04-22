@@ -47,7 +47,7 @@ export class PositionsComponent implements OnInit, OnDestroy {
   private http = inject(HttpClient);
   private auth = inject(AuthService);
   private platformId = inject(PLATFORM_ID);
-  private apiUrl= 'https://auth.ticker-stream.com/api';
+  private apiUrl = '/api';
   
   // Placeholder data
   positions = signal<DisplayHolding[]>([]);

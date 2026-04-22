@@ -16,7 +16,7 @@ describe('SettingsComponent', () => {
     let fixture: ComponentFixture<SettingsComponent>;
     let httpMock: HttpTestingController;
     let authService: MockAuthService;
-    const apiUrl= 'https://auth.ticker-stream.com/api';
+    const apiUrl= '/api';
     const testUserId = 'user-test-123';
 
     beforeEach(async () => {

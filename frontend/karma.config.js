@@ -39,7 +39,14 @@ module.exports = function (config) {
     customLaunchers: {
       ChromeHeadlessCI: {
         base: 'ChromeHeadless',
-        flags: ['--no-sandbox']
+        flags: [
+          '--no-sandbox',
+          '--no-sandbox',
+          '--disable-gpu',
+          '--disable-translate',
+          '--disable-extensions',
+          '--disable-dev-shm-usage'
+        ]
       }
     },
   });

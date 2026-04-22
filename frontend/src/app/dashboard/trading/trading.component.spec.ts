@@ -16,7 +16,7 @@ describe('TradingComponent', () => {
   // Use BehaviorSubject to control route params dynamically
   let queryParamsSubject: BehaviorSubject<Params>;
 
-  const apiUrl= 'https://auth.ticker-stream.com/api';
+  const apiUrl= '/api';
 
   beforeEach(async () => {
     // 1. Initialize the subject with empty params

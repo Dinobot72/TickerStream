@@ -29,7 +29,7 @@ describe('PositionsComponent', () => {
   let httpMock: HttpTestingController;
   let authService: MockAuthService;
   
-  const apiUrl= 'https://auth.ticker-stream.com/api';
+  const apiUrl= '/api';
   const testUserId = 'user-pos-123';
 
   // --- Helper to Configure TestBed ---
