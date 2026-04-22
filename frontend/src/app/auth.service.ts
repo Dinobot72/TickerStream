@@ -10,7 +10,7 @@ import { map, of, Observable } from 'rxjs';
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl= 'https://auth.ticker-stream.com/api';
+  private apiUrl = '/api';
   private isBrowser?: boolean;
 
   isLoggedIn = signal<boolean>(false);

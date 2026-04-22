@@ -30,6 +30,8 @@ services:
     environment:
       - DATABASE_URL=sqlite:////app/data/stockBot.db
       - PYTHONPATH=/app/backend
+      - SECRET_KEY=your_secure_production_secret_key_here
+      - ALLOWED_ORIGINS=["http://localhost","https://ticker-stream.com","https://auth.ticker-stream.com","http://100.85.77.37"]
     networks:
       - ticker-network
     restart: always
@@ -39,8 +41,8 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: tickerstream-frontend
-    ports:
-      - "8080:4000"
+    expose:
+      - "4000"
     depends_on:
       - backend
     networks:
