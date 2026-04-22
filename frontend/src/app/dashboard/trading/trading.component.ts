@@ -29,7 +29,7 @@ export class TradingComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private http = inject(HttpClient);
   private auth = inject(AuthService);
-  private apiUrl= 'https://auth.ticker-stream.com/api';
+  private apiUrl = '/api';
   
 
   tradeAction = signal<'BUY' | 'SELL'>('BUY');

@@ -30,7 +30,7 @@ import { AuthService } from '../auth.service';
 })
 export class LoginComponent implements AfterViewInit, OnDestroy {
 
-    private apiUrl= 'https://auth.ticker-stream.com/api'; 
+    private apiUrl = '/api'; 
     private authService = inject(AuthService);
     private platformId = inject(PLATFORM_ID);
     private ngZone = inject(NgZone);

@@ -99,7 +99,7 @@ describe('BotStatusService', () => {
         expect(service.currentBotStatus).toBeTrue();
     })
 
-    it('should get currentBotStatus as true', () => {
+    it('should get currentBotStatus as false', () => {
         expect(service.currentBotStatus).toBeFalse();
     })
 });

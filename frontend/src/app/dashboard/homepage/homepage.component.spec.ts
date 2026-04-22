@@ -25,6 +25,9 @@ class MockBotStatusService {
 
 interface Holding { ticker: string; quantity: number; purchase_price: number; }
 interface Activity { action: string; ticker: string; quantity: number; price: number; is_bot_trade: boolean; timestamp?: string; }
+interface MarketIndex { name: string, value: number, change: number, changePct: number;}
+interface TrendingStock { ticker: string, price: number, changePct: number;}
+
 
 describe('HomepageComponent', () => {
     // Shared variables
@@ -35,7 +38,7 @@ describe('HomepageComponent', () => {
     let botStatusService: MockBotStatusService;
     let router: Router;
 
-    const apiUrl= 'https://auth.ticker-stream.com/api';
+    const apiUrl= '/api';
     const testUserId = 'user-home-123';
 
     beforeAll(() => {

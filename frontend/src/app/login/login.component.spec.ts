@@ -45,7 +45,7 @@ describe('LoginComponent', () => {
     let httpMock: HttpTestingController;
     let authService: MockAuthService;
 
-    const apiUrl= 'https://auth.ticker-stream.com/api';
+    const apiUrl= '/api';
 
     // Mocks for canvas and its context
     let mockCanvas: HTMLCanvasElement;
