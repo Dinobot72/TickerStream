@@ -7,13 +7,13 @@ from .data_prep_live import get_live_observation
 import numpy as np
 
 class AIBridge:
-    def __init__(self, model_path: str = "./model/newAI/logs/models/final_model"):
+    def __init__(self, model_path: str = "./model/logs/best_model/"):
         try:
             self.model = RecurrentPPO.load(model_path)
             self.lstm_states = {}  # Track LSTM state per ticker
-            print("✅ AI Model loaded successfully")
+            print("AI Model loaded successfully")
         except Exception as e:
-            print(f"❌ Error loading model: {e}")
+            print(f"Error loading model: {e}")
             self.model = None
     
     def predict_action(self, ticker: str, balance: float, shares_held: int):

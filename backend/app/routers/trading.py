@@ -112,12 +112,10 @@ def get_metrics(ticker: str):
 @router.get("/api/change/{ticker}")
 def get_change_info(ticker: str):
     stock_info = get_stock_info(ticker.upper())
+    # Use .get() to prevent KeyErrors if yfinance returns an empty/incomplete dict
     info = {
-        # "short_name": stock_info['shortName'],
-        # "price": stock_info['RegularMarketPrice'],
-        "change_pct": stock_info['regularMarketChangePercent'],
-        "change_amt": stock_info['regularMarketChange'],
-        # "volume": stock_info['RegularMarketVolume'],
+        "change_pct": stock_info.get('regularMarketChangePercent', 0.0),
+        "change_amt": stock_info.get('regularMarketChange', 0.0),
     }
 
     return info
