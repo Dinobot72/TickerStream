@@ -25,7 +25,7 @@ import { AuthService } from '../auth.service';
 })
 export class DashboardComponent implements OnInit {
     userName = signal('User');
-    private apiUrl= 'https://auth.ticker-stream.com/api';
+    private apiUrl = '/api';
     private authService = inject(AuthService);
     private http = inject(HttpClient);
     private platformId = inject(PLATFORM_ID);
