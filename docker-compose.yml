@@ -14,7 +14,7 @@ services:
     container_name: cloudflared-tunnel
     image: cloudflare/cloudflared:latest
     restart: unless-stopped
-    command: tunnel --no-autoupdate run --token ***REMOVED_TOKEN***
+    command: tunnel --no-autoupdate run --token 
     networks:
       - ticker-network
 
