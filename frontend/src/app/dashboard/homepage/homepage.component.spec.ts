@@ -86,7 +86,10 @@ describe('HomepageComponent', () => {
             spyOn(component, 'fetchPortfolio');
             spyOn(component, 'fetchMetrics');
             spyOn(component, 'fetchActivity');
+            spyOn(component, 'fetchTrendingStocks');
+
             fixture.detectChanges();
+
             expect(component).toBeTruthy();
         });
 
@@ -96,13 +99,17 @@ describe('HomepageComponent', () => {
                 const fetchPortfolioSpy = spyOn(component, 'fetchPortfolio');
                 const fetchMetricsSpy = spyOn(component, 'fetchMetrics');
                 const fetchActivitySpy = spyOn(component, 'fetchActivity');
+                const fetchTrendingStocksSpy = spyOn(component, 'fetchTrendingStocks');
+
 
                 fixture.detectChanges(); // ngOnInit
+
 
                 expect(fetchUserDataSpy).toHaveBeenCalled();
                 expect(fetchPortfolioSpy).toHaveBeenCalled();
                 expect(fetchMetricsSpy).toHaveBeenCalled();
                 expect(fetchActivitySpy).toHaveBeenCalled();
+                expect(fetchTrendingStocksSpy).toHaveBeenCalled();
             });
         });
 
@@ -225,6 +232,26 @@ describe('HomepageComponent', () => {
                 expect(component.portfolioCostBasis()).toBe(0);
                 expect(component.totalPortfolioPLPct()).toBe(0);
             
+            });
+            it('should fetch trending stocks and update signals', () => {
+                const mockTrendingStocks: TrendingStock[] = [
+                    { ticker: 'GME', price: 25.50, changePct: 10.5 },
+                    { ticker: 'AMC', price: 5.80, changePct: 8.2 }
+                ];
+
+                // Call the method directly
+                component.fetchTrendingStocks();
+
+                // Expect the exact URL to be called
+                const req = httpMock.expectOne(`${apiUrl}/market/gainers`);
+                expect(req.request.method).toBe('GET');
+                
+                // Flush the mock data back to the component
+                req.flush(mockTrendingStocks);
+
+                // Assert the signal was updated correctly
+                expect(component.trendingStocks().length).toBe(2);
+                expect(component.trendingStocks()[0].ticker).toBe('GME');
             });
         });
 

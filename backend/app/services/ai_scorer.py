@@ -6,7 +6,7 @@ Uses trained RecurrentPPO model to score trading opportunities
 from sb3_contrib import RecurrentPPO
 import numpy as np
 from typing import Dict, Optional
-from data_prep_live import get_live_observation, get_current_price
+from app.services.data_prep_live import get_live_observation, get_current_price
 
 
 class AIScorer:
@@ -15,7 +15,7 @@ class AIScorer:
     Handles LSTM state management.
     """
     
-    def __init__(self, model_path: str = "./model/models/final_model"):
+    def __init__(self, model_path: str = "./model/logs/best_model/best_model"):
         """
         Load the trained RecurrentPPO model.
         
