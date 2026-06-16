@@ -4,8 +4,8 @@ Orchestrates stock selection, scoring, and trade generation
 """
 
 from typing import List, Dict, Tuple
-from ai_scorer import AIScorer
-from data_prep_live import get_current_price
+from app.services.ai_scorer import AIScorer
+from app.services.data_prep_live import get_current_price
 import sqlite3
 
 

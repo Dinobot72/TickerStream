@@ -6,7 +6,6 @@ import { HttpClient } from "@angular/common/http"; // Added HttpClient
 import { AuthService } from "../../auth.service"; // Added AuthService
 import { forkJoin, of, Subscription, timer } from "rxjs"; // Added forkJoin, of, Subscription, timer
 import { catchError, finalize, map, switchMap, tap } from 'rxjs/operators'; // Added RxJS operators
-import { info } from "node:console";
 
 interface WatchlistApiItem {
     ticker: string;
