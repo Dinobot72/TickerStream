@@ -5,6 +5,11 @@ import { PLATFORM_ID } from "@angular/core";
 import { BotStatusService } from "./bot-status.service";
 import { of } from "rxjs";
 
+interface MockBotStatus {
+    status: string;
+    message?: string;
+}
+
 describe('BotStatusService', () => {
     let service: BotStatusService;
     let httpMock: HttpTestingController;
@@ -21,7 +26,8 @@ describe('BotStatusService', () => {
         service = TestBed.inject(BotStatusService);
         httpMock = TestBed.inject(HttpTestingController);
 
-        httpMock.expectOne('/api/bot/status');
+        const initReq = httpMock.expectOne('/api/bot/status');
+        // initReq.flush({ status: 'inactive', message: 'Inactive' });
     });
 
     afterEach(() => {
@@ -39,20 +45,6 @@ describe('BotStatusService', () => {
         const req = httpMock.expectOne('/api/bot/start');
         req.flush({ status: 'active', message: 'Bot started successfully' });
     });
-
-    // it('should call startBot and update status on failure', () => {
-    //     service.startBot().subscribe(
-    //         () => fail('should have failed to start bot'),
-    //         error => {
-    //             expect(error).toBeNull(); // The service catches and returns of(null)
-    //         }
-    //     );
-    //     const req = httpMock.expectOne('/api/bot/start');
-    //     req.error(new ErrorEvent('Server error'), { status: 500, statusText: 'Server Error' });
-
-    //     expect(service.currentBotStatus).toBeFalse(); // Initial state is false, should remain false
-    //     service.botStatusMessage$.subscribe(message => expect(message).toBe('Error starting bot.')).unsubscribe();
-    // });
 
     it('should call stopBot and update status on success', () => {
         service.stopBot().subscribe(status => {

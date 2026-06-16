@@ -5,7 +5,6 @@ from zoneinfo import ZoneInfo
 from app.core.database import get_db_connection
 from app.core.config import bot_state
 from app.services.market_data import get_full_market_data
-from app.services.ai_bridge import predict_action
 # Import process_trade. 
 # Note: In a larger app, we'd move process_trade to a 'services' file to avoid importing from 'routers'
 from app.routers.trading import process_trade
@@ -22,7 +21,7 @@ async def run_trading_bot():
     BOT_USER_ID = 11
     portfolio_mgr = PortfolioManager(
         user_id=BOT_USER_ID, 
-        model_path="./model/newAI/logs/models/final_model",
+        model_path="../model/logs/best_model/best_model",
         db_path="./tickerstream.db"
     )
     # Time Zone Configuration
