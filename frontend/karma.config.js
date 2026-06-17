@@ -11,6 +11,9 @@ module.exports = function (config) {
       require('karma-coverage'),
       require('@angular-devkit/build-angular/plugins/karma')
     ],
+    browserConsoleLogOptions: {
+      terminal: false   // stop printing browser console.* output to the terminal
+    },
     client: {
       jasmine: {
         // You can add jasmine configuration here
