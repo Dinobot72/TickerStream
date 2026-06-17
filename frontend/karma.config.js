@@ -15,9 +15,7 @@ module.exports = function (config) {
       terminal: false   // stop printing browser console.* output to the terminal
     },
     client: {
-      jasmine: {
-        // You can add jasmine configuration here
-      },
+      jasmine: {},
       clearContext: false // leave Jasmine Spec Runner output visible in browser
     },
     jasmineHtmlReporter: {
