@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 import asyncio
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -25,7 +28,7 @@ app.include_router(portfolio.router)
 app.include_router(trading.router)
 
 @app.on_event("startup")
-def startup_event():
+async def startup_event():
     setup_database()
     # Start the background loop
     asyncio.create_task(run_trading_bot())

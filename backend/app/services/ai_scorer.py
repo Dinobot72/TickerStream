@@ -5,8 +5,8 @@ Uses trained RecurrentPPO model to score trading opportunities
 
 from sb3_contrib import RecurrentPPO
 import numpy as np
-from typing import Dict, Optional
-from app.services.data_prep_live import get_live_observation, get_current_price
+from typing import Dict, List, Optional
+from app.services.data_prep_live import get_live_observation, get_current_price, N_CANDIDATES
 
 
 class AIScorer:
@@ -32,12 +32,14 @@ class AIScorer:
             raise
     
     def score_stock(
-        self, 
-        ticker: str, 
-        balance: float, 
+        self,
+        candidates: List[str],
+        held_ticker: Optional[str],
+        balance: float,
         shares: int,
         entry_price: float = 0.0,
-        day_trades_used: int = 0
+        days_held: int = 0,
+        initial_balance: float = 10_000.0,
     ) -> Dict:
         """
         Score a stock and return trading signal.
@@ -52,23 +54,40 @@ class AIScorer:
         Returns:
             {
                 "action": "BUY" | "SELL" | "HOLD",
-                "confidence": float (0-1),  # Simplified - just 0.7 for now
+                "confidence": float (0-1),
                 "current_price": float,
                 "error": str (only if failed)
             }
         """
-        # Build observation matching training environment
-        obs = get_live_observation(ticker, balance, shares, entry_price, day_trades_used)
-        
+        if len(candidates) != N_CANDIDATES:
+            return {
+                "action": "HOLD",
+                "confidence": 0.0,
+                "error": f"candidates must have exactly {N_CANDIDATES} tickers, got {len(candidates)}",
+            }
+ 
+        # Build observation
+        obs = get_live_observation(
+            candidates=candidates,
+            balance=balance,
+            held_ticker=held_ticker,
+            shares=shares,
+            entry_price=entry_price,
+            days_held=days_held,
+            initial_balance=initial_balance,
+        )
+ 
         if obs is None:
             return {
                 "action": "HOLD",
                 "confidence": 0.0,
-                "error": "Could not build observation (insufficient data)"
+                "error": "Could not build observation (insufficient data)",
             }
-        
-        # Get current price for reference
-        current_price = get_current_price(ticker)
+ 
+        # Use held_ticker as the LSTM state key; fall back to a combined key
+        state_key = held_ticker or "_".join(candidates)
+ 
+        current_price = get_current_price(held_ticker) if held_ticker else None
         
         # Initialize LSTM state if needed
         if ticker not in self.lstm_states:
@@ -96,26 +115,20 @@ class AIScorer:
             
             # Simplified confidence - always 0.7 for valid predictions
             # (Complex probability extraction was causing issues)
-            confidence = 0.7
-            
             return {
                 "action": predicted_action,
-                "confidence": confidence,
-                "probabilities": {
-                    "HOLD": 0.33,
-                    "BUY": 0.33,
-                    "SELL": 0.34
-                },  # Placeholder probabilities
-                "current_price": current_price
+                "confidence": 0.7,
+                "current_price": current_price,
             }
             
         except Exception as e:
-            print(f"❌ Error scoring {ticker}: {e}")
+            print(f"❌ Error during model predict: {e}")
             return {
                 "action": "HOLD",
                 "confidence": 0.0,
-                "error": str(e)
+                "error": str(e),
             }
+        
     
     def reset_state(self, ticker: str):
         """
@@ -137,7 +150,7 @@ if __name__ == "__main__":
     print("=== Testing AI Scorer ===\n")
     
     try:
-        scorer = AIScorer("../../../model/logs/best_model/best_model")
+        scorer = AIScorer()
         
         test_cases = [
             ("AAPL", 10000, 0, "No position"),
@@ -147,7 +160,7 @@ if __name__ == "__main__":
         
         for ticker, balance, shares, description in test_cases:
             print(f"Test: {description} - {ticker}")
-            result = scorer.score_stock(ticker, balance, shares)
+            result = scorer.score_stock(ticker, balance, shares, 0.0, 0)
             
             if "error" in result:
                 print(f"  ❌ Error: {result['error']}\n")
