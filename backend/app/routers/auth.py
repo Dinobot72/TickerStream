@@ -5,6 +5,7 @@ from passlib.context import CryptContext
 from pydantic import BaseModel
 from datetime import datetime, timedelta, timezone
 from typing import Optional
+import os
 import jwt
 
 from app.core.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, COOKIE_NAME
@@ -12,6 +13,13 @@ from app.core.database import get_db_connection
 
 router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# In production: Secure=True + SameSite=None required for cross-origin subdomain cookies.
+# In local dev:  Secure=True over http:// causes the browser to silently DROP the cookie,
+#                which is why POST /api/login returned 200 but GET /api/auth/status
+#                always returned 401 — the cookie was set but never stored by the browser.
+IS_PRODUCTION = os.getenv("ENV", "development").lower() == "production"
+COOKIE_DOMAIN = ".ticker-stream.com" if IS_PRODUCTION else None
 
 # --- Models ---
 class User(BaseModel):
@@ -55,11 +63,11 @@ def set_auth_cookie(response: Response, token: str):
         key=COOKIE_NAME,
         value=token,
         httponly=True,
-        secure=True, 
-        samesite="none",
-        domain=".ticker-stream.com",
+        secure=IS_PRODUCTION,
+        samesite="none" if IS_PRODUCTION else "lax",
+        domain=COOKIE_DOMAIN,
         max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        path="/"
+        path="/",
     )
 
 async def get_current_user(request: Request, credentials: Optional[HTTPAuthorizationCredentials] = Depends(cookie_bearer)):
@@ -102,16 +110,23 @@ def register_user(user: User):
 def login(response: Response, credentials: LoginCredentials):
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT user_id, password FROM users WHERE username = ?", (credentials.username,))
+    cursor.execute("SELECT user_id, password, username FROM users WHERE username = ?", (credentials.username,))
     user = cursor.fetchone()
     conn.close()
 
     if not user or not verify_password(credentials.password, user["password"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    access_token = create_access_token(data={"sub": credentials.username, "id": user["user_id"]})
+    access_token = create_access_token(
+        data={"sub": user["username"], "id": user["user_id"]}
+    )
     set_auth_cookie(response, access_token)
-    return {"message": "Login successful", "access_token": access_token, "user_id": user["user_id"]}
+    return {
+        "message": "Login successful",
+        "access_token": access_token,
+        "user_id": user["user_id"],
+        "username": user["username"],
+    }
 
 @router.post("/api/logout")
 def logout(response: Response):

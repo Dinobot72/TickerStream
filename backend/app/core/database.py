@@ -28,6 +28,7 @@ def setup_database():
         CREATE TABLE IF NOT EXISTS portfolios (
             user_id INTEGER PRIMARY KEY,
             balance REAL NOT NULL DEFAULT 0.0,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users (user_id)
         )
     ''')
@@ -82,4 +83,12 @@ def setup_database():
     ''')
     
     conn.commit()
+
+    # Migrate existing databases that were created before the timestamp column
+    try:
+        cursor.execute("ALTER TABLE portfolios ADD COLUMN timestamp DATETIME DEFAULT CURRENT_TIMESTAMP")
+        conn.commit()
+    except sql.OperationalError:
+        pass
+
     conn.close()
