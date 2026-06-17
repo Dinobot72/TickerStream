@@ -4,9 +4,11 @@ Orchestrates stock selection, scoring, and trade generation
 """
 
 from typing import List, Dict, Tuple
-from app.services.ai_scorer import AIScorer
-from app.services.data_prep_live import get_current_price
 import sqlite3
+
+from app.services.ai_scorer import AIScorer
+from app.services.data_prep_live import get_current_price, N_CANDIDATES
+
 
 
 class PortfolioManager:
@@ -25,8 +27,9 @@ class PortfolioManager:
             db_path: Path to SQLite database
         """
         self.user_id = user_id
-        self.db_path = db_path
         self.scorer = AIScorer(model_path)
+        self.db_path = db_path
+
         
     def get_db_connection(self):
         """Create database connection."""
@@ -34,12 +37,12 @@ class PortfolioManager:
         conn.row_factory = sqlite3.Row
         return conn
     
-    def get_current_portfolio(self) -> Tuple[float, Dict[str, int]]:
+    def get_current_portfolio(self) -> Tuple[float, Dict[str, Dict]]:
         """
         Get current balance and holdings.
         
         Returns:
-            (balance, holdings_dict) where holdings_dict[ticker] = quantity
+            (balance, holdings) where holdings[ticker] = {"quantity": int, "purchase_price": float}.
         """
         conn = self.get_db_connection()
         cursor = conn.cursor()
@@ -50,8 +53,14 @@ class PortfolioManager:
         balance = row['balance'] if row else 0.0
         
         # Get holdings
-        cursor.execute("SELECT ticker, quantity FROM holdings WHERE user_id = ? AND quantity > 0", (self.user_id,))
-        holdings = {row['ticker']: row['quantity'] for row in cursor.fetchall()}
+        cursor.execute(
+            "SELECT ticker, quantity, purchase_price FROM holdings WHERE user_id = ? AND quantity > 0",
+            (self.user_id,),
+        )
+        holdings = {
+            row["ticker"]: {"quantity": row["quantity"], "purchase_price": row["purchase_price"]}
+            for row in cursor.fetchall()
+        }
         
         conn.close()
         return balance, holdings
@@ -60,15 +69,14 @@ class PortfolioManager:
         """Get user's watchlist tickers."""
         conn = self.get_db_connection()
         cursor = conn.cursor()
-        
         cursor.execute("SELECT ticker FROM bot_watchlist WHERE user_id = ?", (self.user_id,))
         tickers = [row['ticker'] for row in cursor.fetchall()]
-        
         conn.close()
         return tickers
     
     def get_day_trades_used(self) -> int:
-        """Count day trades in last 5 days."""
+        """Count day trades (same-day buy+sell pairs) in the last 5 days."""
+        """Not currently used as day trades aren't legally available"""
         conn = self.get_db_connection()
         cursor = conn.cursor()
         
@@ -88,48 +96,95 @@ class PortfolioManager:
         result = cursor.fetchone()
         conn.close()
         
-        return result['day_trades'] if result else 0
+        return result["day_trades"] if result and result["day_trades"] else 0
     
+    def _build_candidates(self, watchlist: List[str], held_tickers: List[str]) -> List[str]:
+        """
+        Build a fixed-length N_CANDIDATES list for the observation space.
+
+        FIX: v2 requires exactly N_CANDIDATES tickers every call. We pull from the
+        watchlist, pad/trim as needed, and ensure any currently-held ticker is included
+        (so the model can see its own position in context).
+        """
+        # Start with held tickers so the model always sees what we own
+        pool: List[str] = []
+        for t in held_tickers:
+            if t not in pool:
+                pool.append(t)
+        for t in watchlist:
+            if t not in pool:
+                pool.append(t)
+
+        if len(pool) >= N_CANDIDATES:
+            return pool[:N_CANDIDATES]
+
+        # Pad with the first watchlist entries repeated if we don't have enough
+        while len(pool) < N_CANDIDATES and watchlist:
+            for t in watchlist:
+                if len(pool) >= N_CANDIDATES:
+                    break
+                if t not in pool:
+                    pool.append(t)
+            break  # Avoid infinite loop if watchlist is tiny
+
+        # Last resort: repeat tickers
+        while len(pool) < N_CANDIDATES:
+            pool.append(pool[0] if pool else "SPY")
+
+        return pool[:N_CANDIDATES]
+
     def score_all_stocks(self, candidates: List[str]) -> List[Dict]:
         """
-        Score all candidate stocks using AI.
-        
-        Args:
-            candidates: List of ticker symbols
-            
-        Returns:
-            List of scored opportunities sorted by confidence
+        Score each ticker as a potential trade target.
+ 
+        FIX: Calls AIScorer with the v2 signature — all N_CANDIDATES tickers are
+        passed together as the observation window. For each evaluation we rotate the
+        ticker of interest to position 0 (held_ticker) so the portfolio features
+        reflect that stock's position accurately.
         """
         balance, holdings = self.get_current_portfolio()
         day_trades = self.get_day_trades_used()
-        
+        held_tickers = list(holdings.keys())
+ 
+        # Build the fixed-size candidate window
+        candidate_window = self._build_candidates(candidates, held_tickers)
+ 
         opportunities = []
-        
+ 
         for ticker in candidates:
-            shares = holdings.get(ticker, 0)
-            entry_price = 0.0  # Simplified - would fetch from holdings table in production
-            
+            holding = holdings.get(ticker, {})
+            shares = holding.get("quantity", 0)
+            entry_price = holding.get("purchase_price", 0.0)
+ 
+            # Rotate ticker to front of window so it's the "held_ticker" the model focuses on
+            window = candidate_window.copy()
+            if ticker in window:
+                window.remove(ticker)
+            window = [ticker] + window[:N_CANDIDATES - 1]
+ 
             score = self.scorer.score_stock(
-                ticker=ticker,
+                candidates=window,
+                held_ticker=ticker if shares > 0 else None,
                 balance=balance,
                 shares=shares,
                 entry_price=entry_price,
-                day_trades_used=day_trades
+                days_held=day_trades,  # approximation; replace with real days_held if tracked
             )
-            
+ 
             if "error" not in score:
-                opportunities.append({
-                    "ticker": ticker,
-                    "action": score['action'],
-                    "confidence": score['confidence'],
-                    "probabilities": score['probabilities'],
-                    "current_price": score.get('current_price', 0),
-                    "current_position": shares
-                })
-        
-        # Sort by confidence (highest first)
-        opportunities.sort(key=lambda x: x['confidence'], reverse=True)
-        
+                opportunities.append(
+                    {
+                        "ticker": ticker,
+                        "action": score["action"],
+                        "confidence": score["confidence"],
+                        "current_price": score.get("current_price") or get_current_price(ticker),
+                        "current_position": shares,
+                    }
+                )
+            else:
+                print(f"⚠️  Score error for {ticker}: {score['error']}")
+ 
+        opportunities.sort(key=lambda x: x["confidence"], reverse=True)
         return opportunities
     
     def generate_trade_plan(
@@ -265,8 +320,8 @@ if __name__ == "__main__":
     try:
         pm = PortfolioManager(
             user_id=11,
-            model_path="../../../model/logs/best_model/best_model",
-            db_path="../../tickerstream.db"
+            model_path="../model/logs/best_model/best_model",
+            db_path="./tickerstream.db"
         )
         
         # Get portfolio summary

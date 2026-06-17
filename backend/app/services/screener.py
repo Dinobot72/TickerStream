@@ -1,9 +1,9 @@
 import yfinance as yf
 from yfinance import EquityQuery
+from app.core.config import BOT_USER_ID
 from app.core.database import get_db_connection
 
 # --- CONFIGURATION ---
-BOT_USER_ID = 11
 MAX_PRICE = 100.00   # Affordability Limit
 MIN_PRICE = 2.00    # Penny Stock Filter
 MIN_VOLUME = 500_000 # Minimum Liquidity
@@ -72,8 +72,13 @@ def update_bot_watchlist(candidates):
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # We append new finds to the watchlist.
-    # (Optional: You could delete old ones first if you want a fresh start daily)
+    # Remove any previously-added tickers that no longer return price data
+    cursor.execute(
+        "DELETE FROM bot_watchlist WHERE user_id = ? AND ticker NOT IN ({})".format(
+            ",".join("?" * len(candidates))
+        ),
+        [BOT_USER_ID] + [c['ticker'] for c in candidates]
+    ) if candidates else None
     
     count = 0
     for item in candidates:

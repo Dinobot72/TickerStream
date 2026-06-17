@@ -41,12 +41,13 @@ def get_stock_metrics(ticker: str):
         stock = yf.Ticker(ticker)
         info = stock.info
         metrics = {
-            "market_cap": f"{info['marketCap']:,.2f}",
-            "pe_ratio": f"{info['trailingPE']:,.2f}",
-            "dividend_yield": f"{info['dividendYield']:,}",
-            "volume": f"{info['volume']:,.2f}",
-            "52_week_high": info['fiftyTwoWeekHigh'],
-            "52_week_low": info['fiftyTwoWeekLow'],
+            "market_cap":     info.get('marketCap',          0),
+            "pe_ratio":       info.get('trailingPE',         0),
+            "dividend_yield": info.get('dividendYield',      0),
+            "volume":         info.get('volume',             0),
+            "52_week_high":   info.get('fiftyTwoWeekHigh',   0),
+            "52_week_low":    info.get('fiftyTwoWeekLow',    0),
+            "shortName":      info.get('shortName',          ''),
         }
         return metrics
     except Exception as e:
@@ -74,10 +75,11 @@ def get_historical_data(ticker: str, period: str):
         data = []
 
         for index, row in hist.iterrows():
-            data.append({
-                "timestamp": index.isoformat(),
-                "price": row['Close']
-            })
+            price = row['Close']
+            # Skip NaN rows — they cause json.dumps to raise ValueError
+            if price != price:  # fastest NaN check (NaN != NaN is always True)
+                continue
+            data.append({"timestamp": index.isoformat(), "price": float(price)})
         return data
     except Exception as e:
         print(f"Error fetching history for {ticker}: {e}")
