@@ -21,14 +21,13 @@ export class BotStatusService {
     private readonly botStatusMessageSubject = new BehaviorSubject<string>('Initializing...');
     public readonly botStatusMessage$: Observable<string> = this.botStatusMessageSubject.asObservable();
 
-    private apiUrl = '/api/bot';
+    private readonly apiUrl= '/api/bot';
 
 
     constructor(
         private http: HttpClient,
         @Inject(PLATFORM_ID) private platformId: Object
     )   {
-        // FIX: Only check status if we are in the Browser
         if (isPlatformBrowser(this.platformId)) {
             this.checkBotStatus().subscribe();
         }

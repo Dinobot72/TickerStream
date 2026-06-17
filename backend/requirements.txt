@@ -86,6 +86,7 @@ requests==2.33.1
 rich==14.1.0
 rich-toolkit==0.15.0
 rsa==4.9.1
+sb3-contrib==2.4.0
 setuptools==81.0.0
 shellingham==1.5.4
 six==1.17.0
