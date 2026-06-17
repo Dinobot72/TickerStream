@@ -416,109 +416,82 @@ export class HomepageComponent implements OnInit, OnDestroy {
         })
     }
 
-    renderPortfolioChart(stockData: { ticker: string, quantity: number, history: any[] }[], timeSpan: string) {
-        // 1. Consolidate all unique timestamps from all stocks to ensure X-axis alignment
+    renderPortfolioChart(
+        stockData: { ticker: string; quantity: number; history: any[] }[],
+        timeSpan: string
+    ): void {
+        // 1. Build master timestamp list
         const allTimestamps = new Set<string>();
-        stockData.forEach(stock => {
-            stock.history.forEach(point => allTimestamps.add(point.timestamp));
-        });
-        // Sort chronologically
+        stockData.forEach(s => s.history.forEach(p => allTimestamps.add(p.timestamp)));
         const sortedTimestamps = Array.from(allTimestamps).sort();
-
-        // 2. Create the Master Labels (X-Axis)
+ 
+        // 2. Build labels
         const labels = sortedTimestamps.map(t => {
             const date = new Date(t);
-            if (timeSpan === '1D' || timeSpan === '1W') {
-                return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            } else {
-                return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
-            }
+            return (timeSpan === '1D' || timeSpan === '1W')
+                ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                : date.toLocaleDateString([], { month: 'short', day: 'numeric' });
         });
-
-        // 3. Generate a Dataset for EACH Stock
+ 
+        // 3. Build datasets
         const datasets = stockData.map((stock, index) => {
-            // Create a lookup map for this stock's data points
             const priceMap = new Map(stock.history.map(h => [h.timestamp, h.price]));
-
-            // Map master timestamps to this stock's value (Price * Quantity)
-            // If data is missing for a timestamp, we pass 'null' (Chart.js will span the gap)
-            const dataPoints = sortedTimestamps.map(timestamp => {
-                const price = priceMap.get(timestamp);
-                return price !== undefined ? price : null;
-            });
-
+            const dataPoints = sortedTimestamps.map(ts => priceMap.get(ts) ?? null);
             const color = this.getChartColor(index);
-
             return {
-                label: stock.ticker, // This will show in the legend
+                label: stock.ticker,
                 data: dataPoints,
                 borderColor: color,
-                backgroundColor: color, // Used for legend box
+                backgroundColor: color,
                 borderWidth: 2,
-                fill: false, // Don't fill area under the line
-                tension: 0.4, // Smooth curves
+                fill: false,
+                tension: 0.4,
                 pointRadius: 0,
-                pointHoverRadius: 4
+                pointHoverRadius: 4,
             };
         });
-
-        // 4. Destroy old chart if exists
+ 
+        // FIX: When the chart already exists, update BOTH labels AND datasets,
+        // then call chart.update() so Chart.js actually re-renders.
+        // Previously only datasets were swapped and update() was never called,
+        // so switching time spans left stale X-axis labels and no visual change.
         if (this.chart) {
-            // this.chart.data.labels = labels;
-            this.chart.data.datasets = datasets
-            // this.chart.destroy();
-        } else {
-
-            const config: ChartConfiguration = {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: datasets // Pass the array of datasets here
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: {
-                        mode: 'index', // Hovering shows data for all stocks at that time
-                        intersect: false,
-                    },
-                    plugins: {
-                        legend: { 
-                            display: true, // Show the legend now!
-                            labels: { color: '#94A3B8' }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                // Format tooltip to show Currency
-                                label: (context) => {
-                                    let label = context.dataset.label || '';
-                                    if (label) {
-                                        label += ': ';
-                                    }
-                                    if (context.parsed.y !== null) {
-                                        label += new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(context.parsed.y);
-                                    }
-                                    return label;
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        x: { 
-                            grid: { color: 'rgba(255,255,255,0.05)' },
-                            ticks: { color: '#94A3B8', maxTicksLimit: 8 } 
-                        },
-                        y: { 
-                            grid: { color: 'rgba(255,255,255,0.05)' },
-                            ticks: { color: '#94A3B8' } 
-                        }
-                    }
-                }
-            };
-
-            this.chart = new Chart("LiveChart", config);
+            this.chart.data.labels   = labels;
+            this.chart.data.datasets = datasets;
+            this.chart.update();
+            return;
         }
-
+ 
+        // First render — create the chart instance
+        const config: ChartConfiguration = {
+            type: 'line',
+            data: { labels, datasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { display: true, labels: { color: '#94A3B8' } },
+                    tooltip: {
+                        callbacks: {
+                            label: (ctx) => {
+                                let label = ctx.dataset.label ? ctx.dataset.label + ': ' : '';
+                                if (ctx.parsed.y !== null) {
+                                    label += new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(ctx.parsed.y);
+                                }
+                                return label;
+                            },
+                        },
+                    },
+                },
+                scales: {
+                    x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94A3B8', maxTicksLimit: 8 } },
+                    y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94A3B8' } },
+                },
+            },
+        };
+ 
+        this.chart = new Chart('LiveChart', config);
     }
 
     private getChartColor(index: number): string {
