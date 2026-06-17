@@ -10,6 +10,14 @@ import { AuthService } from '../../auth.service';
 // --- Interfaces & Mocks ---
 
 interface TestWatchlistApiItem { ticker: string; added_at: string; }
+interface TestWatchlistItem {
+    ticker: string;
+    name?: string;
+    current_price: number;
+    change: number;
+    change_pct: number;
+    volume: number;
+}
 interface TestStockPrice { latestPrice?: number; }
 interface TestStockMetric { market_cap: string; pe_ratio: string; dividend_yield: number; volume: string; shortName?: string; }
 
@@ -22,7 +30,7 @@ describe('WatchlistComponent', () => {
     let fixture: ComponentFixture<WatchlistComponent>;
     let httpMock: HttpTestingController;
     let authService: MockAuthService;
-    const apiUrl = '/api';
+    const apiUrl= '/api';
     const testUserId = 'user-123';
 
     // Helper to configure TestBed per suite
@@ -145,8 +153,10 @@ describe('WatchlistComponent', () => {
 
                 httpMock.expectOne(`${apiUrl}/stock/AAPL`).flush({ latestPrice: 150 });
                 httpMock.expectOne(`${apiUrl}/metrics/AAPL`).flush({ shortName: 'Apple Inc.', volume: '100k', market_cap: '2.5T', pe_ratio: '25', dividend_yield: 0.01 });
+                httpMock.expectOne(`${apiUrl}/change/AAPL`).flush({ change_amt: 1.50, change_pct: 1.0 });
                 httpMock.expectOne(`${apiUrl}/stock/GOOG`).flush({ latestPrice: 2800 });
                 httpMock.expectOne(`${apiUrl}/metrics/GOOG`).flush({ shortName: 'Alphabet Inc.', volume: '50k', market_cap: '2T', pe_ratio: '30', dividend_yield: 0 });
+                httpMock.expectOne(`${apiUrl}/change/GOOG`).flush({ change_amt: -10.00, change_pct: -0.35 });
 
                 const items = component.watchlistItems();
                 expect(items.length).toBe(2);

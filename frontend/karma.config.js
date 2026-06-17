@@ -11,10 +11,11 @@ module.exports = function (config) {
       require('karma-coverage'),
       require('@angular-devkit/build-angular/plugins/karma')
     ],
+    browserConsoleLogOptions: {
+      terminal: false   // stop printing browser console.* output to the terminal
+    },
     client: {
-      jasmine: {
-        // You can add jasmine configuration here
-      },
+      jasmine: {},
       clearContext: false // leave Jasmine Spec Runner output visible in browser
     },
     jasmineHtmlReporter: {
@@ -39,7 +40,14 @@ module.exports = function (config) {
     customLaunchers: {
       ChromeHeadlessCI: {
         base: 'ChromeHeadless',
-        flags: ['--no-sandbox']
+        flags: [
+          '--no-sandbox',
+          '--no-sandbox',
+          '--disable-gpu',
+          '--disable-translate',
+          '--disable-extensions',
+          '--disable-dev-shm-usage'
+        ]
       }
     },
   });

@@ -5,6 +5,7 @@ node/
 data/
 __pycache__/*
 **/tensorboard_logs/*
+.env
 
 
 # --- AI Training --- 
@@ -18,3 +19,4 @@ model/universe.csv
 
 model/logs/**.pkl
 model/logs/plots
+
