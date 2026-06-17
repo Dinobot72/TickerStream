@@ -45,7 +45,7 @@ describe('LoginComponent', () => {
     let httpMock: HttpTestingController;
     let authService: MockAuthService;
 
-    const apiUrl = '/api';
+    const apiUrl= '/api';
 
     // Mocks for canvas and its context
     let mockCanvas: HTMLCanvasElement;
