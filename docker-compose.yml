@@ -1,4 +1,16 @@
+# -----------------------------------------------------------------------
+# TickerStream AI — docker-compose.yml
+#
+# BEFORE RUNNING:
+#   1. Copy .env.example to .env (gitignored) and fill in the values.
+#   2. Never commit the real .env to version control.
+# -----------------------------------------------------------------------
+
 services:
+
+  # ------------------------------------------------------------
+  # nginx reverse proxy — public entry point
+  # ------------------------------------------------------------
   gateway:
     image: nginx:alpine
     ports:
@@ -10,14 +22,25 @@ services:
       - backend
     networks:
       - ticker-network
+    restart: unless-stopped
+
+  # ------------------------------------------------------------
+  # Cloudflare Tunnel — exposes nginx to the internet
+  # Tunnel token is read from .env, NOT hardcoded here.
+  # ------------------------------------------------------------
   tunnel:
     container_name: cloudflared-tunnel
     image: cloudflare/cloudflared:latest
     restart: unless-stopped
-    command: tunnel --no-autoupdate run --token ***REMOVED_TOKEN***
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      - gateway
     networks:
       - ticker-network
 
+  # ------------------------------------------------------------
+  # FastAPI backend
+  # ------------------------------------------------------------
   backend:
     build:
       context: .
@@ -26,16 +49,42 @@ services:
     expose:
       - "8000"
     volumes:
+      # Persistent SQLite data.  The bind-mount path must match
+      # DATABASE_PATH below so the app actually writes here.
       - bot_data:/app/data
     environment:
-      - DATABASE_URL=sqlite:////app/data/stockBot.db
-      - PYTHONPATH=/app/backend
-      - SECRET_KEY=your_secure_production_secret_key_here
-      - ALLOWED_ORIGINS=["http://localhost","https://ticker-stream.com","https://auth.ticker-stream.com","http://100.85.77.37"]
+      # --- Auth / Security ---
+      - SECRET_KEY=${SECRET_KEY}
+
+      # --- App mode ---
+      # Must be "production" so Secure/SameSite=None cookies are set
+      # correctly over HTTPS through the Cloudflare tunnel.
+      - ENV=production
+
+      # --- Database ---
+      # Points inside the mounted volume, not the ephemeral container FS.
+      # database.py currently hardcodes its path; see the note in the
+      # README about updating it to read this variable.
+      - DATABASE_PATH=/app/data/tickerstream.db
+
+      # --- CORS ---
+      # Replace with your actual public domain (no trailing slash).
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
+
+      # --- Bot ---
+      - BOT_USER_ID=${BOT_USER_ID:-11}
+
+      # --- Python path ---
+      # Do NOT override PYTHONPATH here — let the Dockerfile's
+      # ENV PYTHONPATH=/app stand so "backend.app.main" resolves.
+
     networks:
       - ticker-network
     restart: always
 
+  # ------------------------------------------------------------
+  # Angular SSR frontend
+  # ------------------------------------------------------------
   frontend:
     build:
       context: ./frontend
@@ -49,6 +98,7 @@ services:
       - ticker-network
     restart: always
 
+# -----------------------------------------------------------------------
 volumes:
   bot_data:
 
@@ -56,4 +106,3 @@ networks:
   ticker-network:
     name: ticker-network
     driver: bridge
-    
