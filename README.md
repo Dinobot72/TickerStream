@@ -1,96 +1,76 @@
-# TickerStream AI 🤖
+# TickerStream AI
 
-**TickerStream AI** is a comprehensive, full-stack application that leverages a deep reinforcement learning model to perform automated stock trading. It features a Python-based backend with a machine learning model for decision-making, and a TypeScript-based frontend for user interaction.
+TickerStream AI is a full-stack stock trading platform that pairs a live Angular dashboard with a FastAPI backend and a custom-trained reinforcement learning trading bot. Users can track a portfolio, watch a personalized watchlist, place manual trades, and toggle on an autonomous bot that trades on their behalf using a `RecurrentPPO` model trained with `stable-baselines3` / `sb3-contrib`.
 
-## ✨ Key Features
+## Architecture
 
-* **🤖 Automated Trading Bot:** A Proximal Policy Optimization (PPO) model, built with `stable-baselines3`, analyzes market data and your portfolio to make trading decisions (BUY, SELL, HOLD).
-* **🖥️ Interactive Dashboard:** The Angular frontend provides a user-friendly interface to monitor stock performance, view portfolio summaries, and check the bot's status in real time.
-* **⚡️ Real-time Stock Data:** The FastAPI backend fetches live stock market data using the `yfinance` library, ensuring that the trading bot and the user have access to the latest information.
-* **📦 Scalable Backend:** The backend is built with FastAPI, providing a high-performance, scalable, and asynchronous API.
-* **📂 Portfolio Management:** The application uses an SQLite database to store and manage user portfolio data, tracking holdings and performance over time.
+```
+┌─────────────┐      ┌──────────────────┐      ┌────────────────────┐
+│   Angular   │ HTTP │     FastAPI       │      │   RecurrentPPO      │
+│  Frontend   │◄────►│     Backend       │◄────►│   Trading Model     │
+│ (SSR, :4200)│      │ (uvicorn, :8000)  │      │ (sb3-contrib/torch) │
+└─────────────┘      └────────┬─────────┘      └────────────────────┘
+                               │
+                         ┌─────▼─────┐
+                         │  SQLite   │
+                         │  Database │
+                         └───────────┘
+```
 
-## 🛠️ Technologies Used
+In production, an `nginx` gateway container proxies `/api/*` to the backend and serves the built frontend, with a Cloudflare tunnel exposing the stack publicly (see `docker-compose.yml`).
 
-### **Frontend**
-* **Angular**
-* **TypeScript**
-* **Tailwind CSS**
-* **Express.js**
+## Repository layout
 
-### **Backend**
-* **FastAPI**
-* **Python**
-* **yfinance**
-* **SQLite**
+| Path | Description |
+| --- | --- |
+| `backend/` | FastAPI service: auth, portfolio, trading endpoints, risk management, and the live trading bot scheduler. See [backend/README.md](backend/README.md). |
+| `frontend/` | Angular 21 SSR dashboard (login, positions, watchlist, trading, AI management, settings). See [frontend/README.md](frontend/README.md). |
+| `model/` | Gymnasium training environment, RecurrentPPO training/evaluation scripts, and a live training monitor. See [model/README.md](model/README.md). |
+| `docker-compose.yml`, `nginx.conf` | Container orchestration for backend + frontend + nginx gateway + Cloudflare tunnel. |
+| `.github/workflows/` | CI: Angular unit tests on every branch push, and an AI-generated summary comment on new GitHub issues. |
 
-### **Machine Learning**
-* **Stable Baselines3**
-* **PyTorch**
-* **Gymnasium**
-* **Pandas**
-* **NumPy**
+## Tech stack
 
-## 🚀 Getting Started
+- **Frontend:** Angular 21 (zoneless change detection, SSR), Angular Material, Chart.js, Tailwind (CDN), Karma/Jasmine.
+- **Backend:** FastAPI, Pydantic, PyJWT + cookie-based auth, SQLite, `yfinance` for market data.
+- **Machine learning:** Gymnasium custom environment, `stable-baselines3`/`sb3-contrib` `RecurrentPPO`, PyTorch.
+- **Infra:** Docker Compose, nginx reverse proxy, Cloudflare Tunnel, GitHub Actions.
 
-### **Prerequisites**
+## Getting started
 
--   **Node.js and npm:** For the frontend.
--   **Python 3.8+ and pip:** For the backend and machine learning model.
--   **Gradle:** For building the project.
+### Option A — Docker Compose
 
-### **Installation & Setup**
+```bash
+docker compose up --build
+```
 
-1.  **Clone the repository:**
-    ```bash
-    git clone [https://github.com/your-username/stock-bot.git](https://github.com/your-username/TickerStream.git)
-    cd stock-bot
-    ```
+This builds the backend and frontend images and starts them behind the `gateway` (nginx) and `tunnel` (Cloudflare) services defined in `docker-compose.yml`.
 
-2.  **Backend Setup:**
-    ```bash
-    cd backend
-    pip install -r requirements.txt
-    ```
+### Option B — Run services manually
 
-3.  **Frontend Setup:**
-    ```bash
-    cd ../frontend
-    npm install
-    ```
+```bash
+# Backend
+cd backend
+pip install -r requirements.txt
+pip install -r ../model/requirements.txt
+uvicorn app.main:app --reload          # http://localhost:8000
 
-4.  **Model Setup:**
-    ```bash
-    cd ../model
-    pip install -r requirements.txt
-    ```
+# Frontend (separate terminal)
+cd frontend
+yarn install
+yarn start                              # http://localhost:4200, proxies /api to :8000
+```
 
-### **Running the Application**
+See each subdirectory's README for environment variables, database schema, and model training instructions.
 
-1.  **Start the Backend Server:**
-    ```bash
-    cd backend
-    uvicorn app.main:app --reload
-    ```
-    The backend will be available at `http://localhost:8000`.
+## Notes on current state
 
-2.  **Start the Frontend Development Server:**
-    ```bash
-    cd ../frontend
-    ng serve
-    ```
-    The frontend will be available at `http://localhost:4200`.
+This is an actively evolving project. A few things worth knowing before deploying anywhere public:
 
-3.  **Build the Entire Project:**
-    ```bash
-    gradle buildAll
-    ```
+- `docker-compose.yml` currently has a real Cloudflare tunnel token and a placeholder `SECRET_KEY` committed in plaintext — both must be rotated and moved to a real secrets store before any public deployment.
+- The `ai_bridge` integration in `backend/app/routers/trading.py` is commented out, and the AI scorer/portfolio manager have some signature mismatches between the live-inference code path and the legacy code path — see `backend/README.md` for details.
+- `backend/app/services/services.py` duplicates `market_data.py` and appears unused; it's a candidate for removal.
 
-## 🧠 How the Trading Bot Works
+## License
 
-The core of this project is the **PPO (Proximal Policy Optimization)** trading bot. The bot is trained on historical stock data to learn a profitable trading strategy.
-
-1.  **Data Preparation:** The `data_prep.py` script downloads historical stock data from Yahoo Finance.
-2.  **Custom Environment:** `trading_env.py` creates a custom environment using `gymnasium`, where the bot can simulate trading.
-3.  **Training:** The `train_model.py` script uses this environment to train the PPO model.
-4.  **Decision Making:** The trained model is loaded by the `strategy_engine.py`, which provides an endpoint for the FastAPI backend to get trading decisions.
+No license file is currently included — add one before distributing this project publicly.
