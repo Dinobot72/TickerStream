@@ -1,0 +1,9 @@
+Ticker-Stream 
+    Version: 1.0.0
+
+    Backend
+        Version: 1.0.0
+    Frontend
+        Version: 1.0.0
+    Model
+        Version: 1.0.4

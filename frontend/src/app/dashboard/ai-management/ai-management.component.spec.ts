@@ -34,7 +34,7 @@ describe('AiManagementComponent', () => {
     let httpMock: HttpTestingController;
     let authService: MockAuthService;
 
-    const apiUrl = '/api';
+    const apiUrl= '/api';
     const testUserId = 'user-ai-123';
 
     beforeEach(async () => {
