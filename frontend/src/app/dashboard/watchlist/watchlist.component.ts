@@ -1,78 +1,69 @@
-import { ChangeDetectionStrategy, Component, signal, OnInit, OnDestroy, inject, PLATFORM_ID } from "@angular/core"; // Added OnInit, OnDestroy, inject
-import { CommonModule, isPlatformBrowser, CurrencyPipe, PercentPipe } from "@angular/common"; // Added isPlatformBrowser, Pipes
-import { FormsModule } from "@angular/forms";
-import { RouterModule } from "@angular/router";
-import { HttpClient } from "@angular/common/http"; // Added HttpClient
-import { AuthService } from "../../auth.service"; // Added AuthService
-import { forkJoin, of, Subscription, timer } from "rxjs"; // Added forkJoin, of, Subscription, timer
-import { catchError, finalize, map, switchMap, tap } from 'rxjs/operators'; // Added RxJS operators
+import { ChangeDetectionStrategy, Component, signal, OnInit, OnDestroy, inject, PLATFORM_ID } from '@angular/core';
+import { CommonModule, isPlatformBrowser, CurrencyPipe, PercentPipe } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
+import { AuthService } from '../../auth.service';
+import { forkJoin, of, Subscription, timer } from 'rxjs';
+import { catchError, finalize, map, switchMap } from 'rxjs/operators';
 
 interface WatchlistApiItem {
     ticker: string;
-    added_at: string; // Or Date if backend converts
+    added_at: string;
 }
 
 interface WatchlistItem {
     ticker: string;
-    name?: string; // Optional name from metrics
+    name: string;         // FIX: non-optional — we always supply a fallback
     current_price: number;
     change: number;
     change_pct: number;
-    volume: number; // Use number for consistency
+    volume: number;
 }
 
-// Interfaces for API responses
-interface StockPrice {
-    latestPrice?: number;
-}
+interface StockPrice  { latestPrice?: number; }
 interface StockMetric {
-     market_cap: string;
-     pe_ratio: string;
-     dividend_yield: number;
-     volume: string; // Backend formats with commas
-     shortName?: string; // yfinance info often has shortName
+    market_cap?: string | number;
+    pe_ratio?: string | number;
+    dividend_yield?: number;
+    volume?: string | number;  // FIX: typed as optional — backend returns '' on missing fields
+    shortName?: string;
 }
-
+interface StockChange {
+    change_amt?: number;
+    change_pct?: number;
+}
 
 @Component({
     selector: 'watchlist',
     standalone: true,
-    imports: [
-        CommonModule,
-        FormsModule,
-        RouterModule,
-        CurrencyPipe, // Add pipes
-        PercentPipe
-    ],
+    imports: [CommonModule, FormsModule, RouterModule, CurrencyPipe, PercentPipe],
     templateUrl: './watchlist.component.html',
     styleUrls: ['./watchlist.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
-
-export class WatchlistComponent implements OnInit, OnDestroy { // Implements OnInit, OnDestroy
-    private http = inject(HttpClient);
-    private auth = inject(AuthService);
+export class WatchlistComponent implements OnInit, OnDestroy {
+    private http       = inject(HttpClient);
+    private auth       = inject(AuthService);
     private platformId = inject(PLATFORM_ID);
-    private apiUrl = '/api';
+    private apiUrl     = '/api';
 
     watchlistItems = signal<WatchlistItem[]>([]);
-    newTicker = signal('');
-    infoMessage = signal<{type: 'error' | 'success', text: string} | null>(null);
-    isLoading = signal(true); // Loading state for initial fetch + updates
-    isAdding = signal(false); // Specific loading state for adding
+    newTicker      = signal('');
+    infoMessage    = signal<{ type: 'error' | 'success'; text: string } | null>(null);
+    isLoading      = signal(true);
+    isAdding       = signal(false);
 
     private refreshSubscription: Subscription | null = null;
-
 
     ngOnInit(): void {
         if (isPlatformBrowser(this.platformId)) {
             this.fetchWatchlistAndDetails();
-            // Set up auto-refresh every 60 seconds
-            this.refreshSubscription = timer(60000, 60000).subscribe(() => {
-                this.fetchWatchlistAndDetails(false); // Refresh details without initial load indicator
-            });
+            this.refreshSubscription = timer(60_000, 60_000).subscribe(() =>
+                this.fetchWatchlistAndDetails(false)
+            );
         } else {
-             this.isLoading.set(false);
+            this.isLoading.set(false);
         }
     }
 
@@ -80,7 +71,7 @@ export class WatchlistComponent implements OnInit, OnDestroy { // Implements OnI
         this.refreshSubscription?.unsubscribe();
     }
 
-    fetchWatchlistAndDetails(showLoading: boolean = true): void {
+    fetchWatchlistAndDetails(showLoading = true): void {
         const userId = this.auth.currentUserId();
         if (!userId) {
             this.infoMessage.set({ type: 'error', text: 'User not logged in.' });
@@ -90,73 +81,85 @@ export class WatchlistComponent implements OnInit, OnDestroy { // Implements OnI
 
         if (showLoading) {
             this.isLoading.set(true);
-            this.infoMessage.set(null); // Clear previous messages
+            this.infoMessage.set(null);
         }
 
-        // 1. Fetch the list of tickers in the watchlist
-        this.http.get<WatchlistApiItem[]>(`${this.apiUrl}/watchlist/${userId}`, { withCredentials: true })
+        this.http
+            .get<WatchlistApiItem[]>(`${this.apiUrl}/watchlist/${userId}`, { withCredentials: true })
             .pipe(
-                switchMap((apiItems: WatchlistApiItem[]) => {
-                    if (!apiItems || apiItems.length === 0) {
-                        return of([] as WatchlistItem[]); // Return empty array if watchlist is empty
-                    }
-                    const tickers = apiItems.map(item => item.ticker);
+                switchMap((apiItems) => {
+                    if (!apiItems?.length) return of([] as WatchlistItem[]);
 
-                    // 2. Create requests to fetch details (price & metrics) for each ticker
-                    const detailRequests = tickers.map(ticker => 
+                    const detailRequests = apiItems.map(({ ticker }) =>
                         forkJoin({
-                            price: this.http.get<StockPrice>(`${this.apiUrl}/stock/${ticker}`, { withCredentials: true }).pipe(catchError(() => of({ latestPrice: 0 }))),
-                            metrics: this.http.get<StockMetric>(`${this.apiUrl}/metrics/${ticker}`, { withCredentials: true }).pipe(catchError(() => of({} as StockMetric)))
+                            price: this.http
+                                .get<StockPrice>(`${this.apiUrl}/stock/${ticker}`, { withCredentials: true })
+                                .pipe(catchError(() => of({} as StockPrice))),
+                            metrics: this.http
+                                .get<StockMetric>(`${this.apiUrl}/metrics/${ticker}`, { withCredentials: true })
+                                .pipe(catchError(() => of({} as StockMetric))),
+                            info: this.http
+                                .get<StockChange>(`${this.apiUrl}/change/${ticker}`, { withCredentials: true })
+                                .pipe(catchError(() => of({} as StockChange))),
                         }).pipe(
-                            map(details => ({ // Combine results for this ticker
-                                ticker: ticker,
-                                name: details.metrics?.shortName, // Get name from metrics if available
-                                current_price: details.price?.latestPrice ?? 0,
-                                // Calculate change based on previous close (if available in metrics, else approximation)
-                                // Placeholder calculation: assume metrics include previous close or calculate based on open
-                                change: 0, // TODO: Calculate change properly if data allows
-                                change_pct: 0, // TODO: Calculate change % properly
-                                volume: parseInt((details.metrics?.volume || '0').replace(/,/g, ''), 10) || 0, // Parse volume string
-                            }))
+                            map(({ price, metrics, info }) => {
+                                // FIX: parse volume safely — backend may return a formatted
+                                // string like "1,234,567.00" OR a raw number OR undefined.
+                                // Previously parseInt(undefined.replace(...)) threw; now we
+                                // handle all three cases explicitly.
+                                const rawVolume = metrics?.volume;
+                                let volume = 0;
+                                if (typeof rawVolume === 'number') {
+                                    volume = Math.round(rawVolume);
+                                } else if (typeof rawVolume === 'string') {
+                                    // strip commas and trailing decimal part, then parse
+                                    volume = parseInt(rawVolume.replace(/,/g, ''), 10) || 0;
+                                }
+
+                                return {
+                                    ticker,
+                                    // FIX: always provide a string — 'undefined' string in the
+                                    // UI is worse than showing the ticker symbol as a fallback.
+                                    name:          metrics?.shortName ?? ticker,
+                                    current_price: price?.latestPrice ?? 0,
+                                    change:        info?.change_amt   ?? 0,
+                                    change_pct:    info?.change_pct   ?? 0,
+                                    volume,
+                                } satisfies WatchlistItem;
+                            })
                         )
                     );
-                    
-                    // 3. Execute all detail requests in parallel
+
                     return forkJoin(detailRequests);
                 }),
                 catchError(err => {
                     console.error('Error fetching watchlist or details:', err);
                     this.infoMessage.set({ type: 'error', text: 'Failed to load watchlist details.' });
-                    return of([] as WatchlistItem[]); // Return empty on error
+                    return of([] as WatchlistItem[]);
                 }),
                 finalize(() => {
-                     if (showLoading || this.isLoading()) {
-                        this.isLoading.set(false);
-                     }
+                    if (showLoading || this.isLoading()) this.isLoading.set(false);
                 })
             )
-            .subscribe(detailedItems => {
-                this.watchlistItems.set(detailedItems);
-            });
+            .subscribe(items => this.watchlistItems.set(items));
     }
-
 
     addTicker(): void {
         const userId = this.auth.currentUserId();
-         if (!userId) {
-            this.infoMessage.set({type: 'error', text: 'User not logged in.'});
+        if (!userId) {
+            this.infoMessage.set({ type: 'error', text: 'User not logged in.' });
             return;
         }
 
         const tickerToAdd = this.newTicker().trim().toUpperCase();
         if (!tickerToAdd) {
-            this.infoMessage.set({type: 'error', text: 'Please enter a ticker symbol.'});
-            setTimeout(() => this.infoMessage.set(null), 3000); // Clear message
+            this.infoMessage.set({ type: 'error', text: 'Please enter a ticker symbol.' });
+            setTimeout(() => this.infoMessage.set(null), 3000);
             return;
         }
 
-        if (this.watchlistItems().some(item => item.ticker === tickerToAdd)) {
-            this.infoMessage.set({type: 'error', text: `${tickerToAdd} is already in the watchlist.`});
+        if (this.watchlistItems().some(i => i.ticker === tickerToAdd)) {
+            this.infoMessage.set({ type: 'error', text: `${tickerToAdd} is already in the watchlist.` });
             setTimeout(() => this.infoMessage.set(null), 3000);
             return;
         }
@@ -164,54 +167,49 @@ export class WatchlistComponent implements OnInit, OnDestroy { // Implements OnI
         this.isAdding.set(true);
         this.infoMessage.set(null);
 
-        this.http.post<any>(`${this.apiUrl}/watchlist/${userId}`, { ticker: tickerToAdd }, { withCredentials: true })
+        this.http
+            .post<any>(`${this.apiUrl}/watchlist/${userId}`, { ticker: tickerToAdd }, { withCredentials: true })
             .pipe(
                 catchError(err => {
-                    console.error("Failed to add ticker:", err);
-                    this.infoMessage.set({type: 'error', text: err.error?.detail || `Failed to add ${tickerToAdd}.`});
+                    this.infoMessage.set({ type: 'error', text: err.error?.detail ?? `Failed to add ${tickerToAdd}.` });
                     setTimeout(() => this.infoMessage.set(null), 3000);
-                    return of(null); // Keep stream alive
+                    return of(null);
                 }),
                 finalize(() => this.isAdding.set(false))
             )
             .subscribe(response => {
-                if (response) { // Check if the request was successful (not caught by catchError)
-                    this.infoMessage.set({type: 'success', text: response.message || `${tickerToAdd} added successfully.`});
-                    this.newTicker.set(''); // Clear input
-                    this.fetchWatchlistAndDetails(false); // Refresh the list without full loading indicator
+                if (response) {
+                    this.infoMessage.set({ type: 'success', text: response.message ?? `${tickerToAdd} added successfully.` });
+                    this.newTicker.set('');
+                    this.fetchWatchlistAndDetails(false);
                     setTimeout(() => this.infoMessage.set(null), 3000);
                 }
             });
     }
 
     removeTicker(tickerToRemove: string): void {
-         const userId = this.auth.currentUserId();
-         if (!userId) {
-            this.infoMessage.set({type: 'error', text: 'User not logged in.'});
+        const userId = this.auth.currentUserId();
+        if (!userId) {
+            this.infoMessage.set({ type: 'error', text: 'User not logged in.' });
             return;
         }
-        
-        // Optimistic UI update (optional)
-        // const currentItems = this.watchlistItems();
-        // this.watchlistItems.set(currentItems.filter(item => item.ticker !== tickerToRemove));
-        this.infoMessage.set(null); // Clear previous message
 
-        this.http.delete<any>(`${this.apiUrl}/watchlist/${userId}/${tickerToRemove}`, { withCredentials: true })
-             .pipe(
+        this.infoMessage.set(null);
+
+        this.http
+            .delete<any>(`${this.apiUrl}/watchlist/${userId}/${tickerToRemove}`, { withCredentials: true })
+            .pipe(
                 catchError(err => {
-                    console.error(`Failed to remove ${tickerToRemove}:`, err);
-                    this.infoMessage.set({type: 'error', text: err.error?.detail || `Failed to remove ${tickerToRemove}.`});
-                    // Revert optimistic update if used
-                    // this.watchlistItems.set(currentItems); 
-                     setTimeout(() => this.infoMessage.set(null), 3000);
+                    this.infoMessage.set({ type: 'error', text: err.error?.detail ?? `Failed to remove ${tickerToRemove}.` });
+                    setTimeout(() => this.infoMessage.set(null), 3000);
                     return of(null);
                 })
             )
             .subscribe(response => {
                 if (response) {
-                    this.infoMessage.set({type: 'success', text: response.message || `${tickerToRemove} removed.`});
-                     this.fetchWatchlistAndDetails(false); // Refresh the list fully after successful removal
-                     setTimeout(() => this.infoMessage.set(null), 3000);
+                    this.infoMessage.set({ type: 'success', text: response.message ?? `${tickerToRemove} removed.` });
+                    this.fetchWatchlistAndDetails(false);
+                    setTimeout(() => this.infoMessage.set(null), 3000);
                 }
             });
     }
