@@ -7,6 +7,8 @@ __pycache__/*
 **/tensorboard_logs/*
 
 
+.env
+
 # --- AI Training --- 
 model/data
 model/logs/models
