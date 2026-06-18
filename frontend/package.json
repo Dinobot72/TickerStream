@@ -1,6 +1,6 @@
 {
-  "name": "stock-bot",
-  "version": "0.0.0",
+  "name": "ticker-stream",
+  "version": "1.0.0",
   "scripts": {
     "ng": "ng",
     "start": "ng serve --proxy-config proxy.conf.json",

@@ -1,0 +1,6 @@
+{
+    
+    "karmaTestExplorer.testFramework": "jasmine",
+    "karmaTestExplorer.projectWorkspaces": ["frontend"],
+    "karmaTestExplorer.testGrouping": "suite"
+}
