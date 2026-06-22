@@ -93,6 +93,8 @@ services:
     container_name: tickerstream-frontend
     expose:
       - "4000"
+    environment:
+      - NG_ALLOWED_HOSTS=ticker-stream.com,*.ticker-stream.com,localhost
     depends_on:
       - backend
     networks:
