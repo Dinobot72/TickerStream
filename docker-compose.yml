@@ -49,9 +49,10 @@ services:
     expose:
       - "8000"
     volumes:
-      # Persistent SQLite data.  The bind-mount path must match
-      # DATABASE_PATH below so the app actually writes here.
+      # Persistent SQLite data
       - bot_data:/app/data
+      # Mount the AI model folder from the host into the container
+      - ./model:/app/model
     environment:
       # --- Auth / Security ---
       - SECRET_KEY=${SECRET_KEY}
