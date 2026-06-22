@@ -22,7 +22,6 @@ services:
       - backend
     networks:
       - ticker-network
-    restart: unless-stopped
 
   # ------------------------------------------------------------
   # Cloudflare Tunnel — exposes nginx to the internet
@@ -60,7 +59,7 @@ services:
       # --- App mode ---
       # Must be "production" so Secure/SameSite=None cookies are set
       # correctly over HTTPS through the Cloudflare tunnel.
-      - ENV=production
+      - ENV=${ENV}
 
       # --- Database ---
       # Points inside the mounted volume, not the ephemeral container FS.
