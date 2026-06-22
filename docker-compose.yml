@@ -51,7 +51,7 @@ services:
       # Persistent SQLite data
       - bot_data:/app/data
       # Mount the AI model folder from the host into the container
-      - ./model:/app/model
+      - ./model:/model
     environment:
       # --- Auth / Security ---
       - SECRET_KEY=${SECRET_KEY}
