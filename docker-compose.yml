@@ -94,7 +94,7 @@ services:
     expose:
       - "4000"
     environment:
-      - NG_ALLOWED_HOSTS=ticker-stream.com,*.ticker-stream.com,localhost
+      - NG_ALLOWED_HOSTS=${NG_ALLOWED_HOSTS}
     depends_on:
       - backend
     networks:
