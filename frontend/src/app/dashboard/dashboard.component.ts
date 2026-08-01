@@ -2,8 +2,7 @@ import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, OnInit, PLATFORM_ID, signal } from '@angular/core'
 import { MatGridListModule } from '@angular/material/grid-list';
 import { SidebarComponent } from './sidebar/sidebar.comonent';
-import { HomepageComponent } from './homepage/homepage.component';
-import { ActivatedRoute, RouterModule } from '@angular/router';
+import { RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../auth.service';
 
@@ -15,7 +14,6 @@ import { AuthService } from '../auth.service';
         CommonModule,
         MatGridListModule,
         SidebarComponent,
-        HomepageComponent,
         RouterModule
     ],
     providers: [],
