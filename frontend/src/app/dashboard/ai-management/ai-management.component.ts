@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, OnInit, Signal, signal } from '@angular/core';
-import { CommonModule, CurrencyPipe, DatePipe, PercentPipe } from '@angular/common';
+import { CommonModule, DatePipe } from '@angular/common';
 import { AuthService } from '../../auth.service';
 import { HttpClient } from '@angular/common/http';
 import { catchError, finalize, map, of, tap, Observable } from 'rxjs';
@@ -26,8 +26,6 @@ interface BotStatus {
   imports: [
     CommonModule,
     DatePipe,
-    CurrencyPipe,
-    PercentPipe,
   ],
   templateUrl: './ai-management.component.html',
   styleUrls: ['./ai-management.component.scss'],
