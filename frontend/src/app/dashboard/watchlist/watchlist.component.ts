@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, signal, OnInit, OnDestroy, inject, PLATFORM_ID } from '@angular/core';
-import { CommonModule, isPlatformBrowser, CurrencyPipe, PercentPipe } from '@angular/common';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
@@ -37,7 +37,7 @@ interface StockChange {
 @Component({
     selector: 'watchlist',
     standalone: true,
-    imports: [CommonModule, FormsModule, RouterModule, CurrencyPipe, PercentPipe],
+    imports: [CommonModule, FormsModule, RouterModule],
     templateUrl: './watchlist.component.html',
     styleUrls: ['./watchlist.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
