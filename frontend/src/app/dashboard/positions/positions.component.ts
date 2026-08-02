@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, OnDestroy, OnInit, PLATFORM_ID, signal } from '@angular/core';
-import { CommonModule, CurrencyPipe, isPlatformBrowser, PercentPipe } from '@angular/common';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { RouterModule } from '@angular/router'; // Import RouterModule for routerLink
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { HttpClient } from '@angular/common/http';
@@ -35,8 +35,6 @@ interface StockPrice {
     CommonModule,
     RouterModule,
     MatProgressSpinnerModule,
-    CurrencyPipe,
-    PercentPipe,
     ],
   templateUrl: './positions.component.html',
   styleUrls: ['./positions.component.scss'],
