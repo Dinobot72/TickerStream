@@ -6,7 +6,7 @@ import { of } from 'rxjs';
 
 import { DashboardComponent } from './dashboard.component';
 import { AuthService } from '../auth.service';
-import { SidebarComponent } from './sidebar/sidebar.comonent';
+import { SidebarComponent } from './sidebar/sidebar.component';
 import { HomepageComponent } from './homepage/homepage.component';
 
 // --- Mocks ---
