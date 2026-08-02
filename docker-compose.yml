@@ -14,7 +14,7 @@ services:
   gateway:
     image: nginx:alpine
     ports:
-      - "80:80"
+      - "127.0.0.1:80:80"
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
     depends_on:
@@ -22,7 +22,6 @@ services:
       - backend
     networks:
       - ticker-network
-    restart: unless-stopped
 
   # ------------------------------------------------------------
   # Cloudflare Tunnel — exposes nginx to the internet
@@ -49,9 +48,10 @@ services:
     expose:
       - "8000"
     volumes:
-      # Persistent SQLite data.  The bind-mount path must match
-      # DATABASE_PATH below so the app actually writes here.
+      # Persistent SQLite data
       - bot_data:/app/data
+      # Mount the AI model folder from the host into the container
+      - ./model:/model
     environment:
       # --- Auth / Security ---
       - SECRET_KEY=${SECRET_KEY}
@@ -59,7 +59,7 @@ services:
       # --- App mode ---
       # Must be "production" so Secure/SameSite=None cookies are set
       # correctly over HTTPS through the Cloudflare tunnel.
-      - ENV=production
+      - ENV=${ENV}
 
       # --- Database ---
       # Points inside the mounted volume, not the ephemeral container FS.
@@ -77,6 +77,7 @@ services:
       # --- Python path ---
       # Do NOT override PYTHONPATH here — let the Dockerfile's
       # ENV PYTHONPATH=/app stand so "backend.app.main" resolves.
+      - PYTHONPATH=/app/backend
 
     networks:
       - ticker-network
@@ -92,6 +93,8 @@ services:
     container_name: tickerstream-frontend
     expose:
       - "4000"
+    environment:
+      - NG_ALLOWED_HOSTS=${NG_ALLOWED_HOSTS}
     depends_on:
       - backend
     networks:
