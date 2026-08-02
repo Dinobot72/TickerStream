@@ -107,7 +107,6 @@ export class LoginComponent implements AfterViewInit, OnDestroy {
     }
 
     login(): void {
-        console.log('username: ', this.username,' password: ', this.password)
         this.authService.login({ username: this.username, password: this.password })
             .subscribe({
                 next: (response) => {
