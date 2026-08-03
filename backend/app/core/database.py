@@ -92,6 +92,15 @@ def setup_database():
         )
     ''')
 
+    # Bot User Table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS bot_settings (
+            user_id INTEGER PRIMARY KEY,
+            is_active BOOLEAN NOT NULL DEFAULT FALSE,
+            FOREIGN KEY (user_id) REFERENCES users (user_id)
+        )
+    ''')
+
     conn.commit()
 
     # Migrate existing databases that were created before the timestamp column
