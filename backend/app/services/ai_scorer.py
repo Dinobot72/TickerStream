@@ -13,6 +13,13 @@ class AIScorer:
     """
     Wrapper around the trained AI model for scoring stocks.
     Handles LSTM state management.
+
+    NOTE: A single AIScorer instance is now shared across every active
+    user's PortfolioManager (see tasks/scheduler.py) so the model is only
+    loaded once. LSTM state is keyed by `state_key` (held ticker, or a
+    combined key of the candidate window when nothing is held) so state
+    from one user's held position won't be confused with another's, as
+    long as callers pass consistent held_ticker/candidates per user.
     """
     
     def __init__(self, model_path: str = "./model/logs/best_model/best_model"):
@@ -45,11 +52,12 @@ class AIScorer:
         Score a stock and return trading signal.
         
         Args:
-            ticker: Stock symbol (e.g., "AAPL")
+            candidates: The fixed-size window of tickers for this observation
+            held_ticker: Ticker currently held (if any) for this evaluation
             balance: Available cash
             shares: Current shares owned of this ticker
             entry_price: Price at which shares were purchased (if any)
-            day_trades_used: Number of day trades used in rolling 5-day window
+            days_held: Number of days the position has been held
             
         Returns:
             {
@@ -90,21 +98,21 @@ class AIScorer:
         current_price = get_current_price(held_ticker) if held_ticker else None
         
         # Initialize LSTM state if needed
-        if ticker not in self.lstm_states:
-            self.lstm_states[ticker] = None
-            self.episode_starts[ticker] = True
+        if state_key not in self.lstm_states:
+            self.lstm_states[state_key] = None
+            self.episode_starts[state_key] = True
         else:
-            self.episode_starts[ticker] = False
+            self.episode_starts[state_key] = False
         
         try:
             # Reshape observation for batch dimension
             obs_tensor = obs.reshape(1, -1)
-            episode_start = np.array([self.episode_starts[ticker]])
+            episode_start = np.array([self.episode_starts[state_key]])
             
             # Get action from model WITH LSTM state
-            action, self.lstm_states[ticker] = self.model.predict(
+            action, self.lstm_states[state_key] = self.model.predict(
                 obs_tensor,
-                state=self.lstm_states[ticker],
+                state=self.lstm_states[state_key],
                 episode_start=episode_start,
                 deterministic=True  # Consistent predictions
             )
@@ -134,6 +142,13 @@ class AIScorer:
         """
         Reset LSTM state for a ticker.
         Call this when closing a position to start fresh.
+
+        NOTE: `ticker` here is expected to match the state_key used in
+        score_stock (i.e. the held_ticker). If score_stock was called with
+        held_ticker=None for this position, its state was stored under the
+        combined-candidates key instead and this reset_state call is a no-op —
+        harmless, since a fresh episode_start will be set the next time that
+        combined key is scored anyway.
         """
         if ticker in self.lstm_states:
             del self.lstm_states[ticker]
