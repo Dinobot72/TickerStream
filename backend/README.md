@@ -27,7 +27,6 @@ The API serves on `http://localhost:8000`. The Angular dev server proxies `/api/
 | --- | --- | --- |
 | `SECRET_KEY` | JWT signing secret. **Required in production** — a random key is generated (and a warning logged) if unset, which invalidates all tokens on restart. | random, ephemeral |
 | `ALLOWED_ORIGINS` | JSON array of CORS origins. | hardcoded list in `app/core/config.py` |
-| `BOT_USER_ID` | The user ID the trading bot trades under. | `11` |
 | `ENV` | Set to `production` to enable secure/cross-site cookies (`Secure`, `SameSite=None`, cookie domain `.ticker-stream.com`). | `development` |
 
 Create a `.env` file in `backend/` (loaded via `python-dotenv`) or set these in your shell/container.

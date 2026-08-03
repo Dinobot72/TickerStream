@@ -71,9 +71,6 @@ services:
       # Replace with your actual public domain (no trailing slash).
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
 
-      # --- Bot ---
-      - BOT_USER_ID=${BOT_USER_ID:-11}
-
       # --- Python path ---
       # Do NOT override PYTHONPATH here — let the Dockerfile's
       # ENV PYTHONPATH=/app stand so "backend.app.main" resolves.

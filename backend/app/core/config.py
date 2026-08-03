@@ -38,11 +38,3 @@ else:
         "http://127.0.0.1:4200",           # Local development loopback
         "http://100.85.77.37",             # Tailscale IP
     ]
-    
-# --- Bot Configuration ---
-# Centralised bot user ID
-BOT_USER_ID: int = int(os.getenv("BOT_USER_ID", "11"))
-class GlobalBotState:
-    is_active: bool = False
-
-bot_state = GlobalBotState()
