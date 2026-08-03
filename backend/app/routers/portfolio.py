@@ -111,3 +111,26 @@ def remove_watchlist(user_id: int, ticker: str, current_user: dict = Depends(get
     conn.commit()
     conn.close()
     return {"message": "Removed from watchlist"}
+
+@router.get("/api/user/{user_id}/portfolio")
+def get_portfolio(user_id: int, current_user: dict = Depends(get_current_user)):
+    '''
+    Returns the current balance of the user's portfolio.
+
+    Parameters:
+    user_id (int): the id of the user to get the portfolio balance for
+    current_user (dict): the current user using the app
+
+    Returns:
+    balance (float): the current balance of the user's portfolio
+    '''
+    if current_user["user_id"] != user_id:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT balance FROM portfolios WHERE user_id = ?", (user_id))
+    balance = cursor.fetchone()['balance']
+    conn.commit()
+    conn.close()
+    return {"balance": balance}
