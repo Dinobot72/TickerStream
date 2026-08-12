@@ -66,10 +66,10 @@ async def run_trading_bot():
                 and (now.hour > 9 or (now.hour == 9 and now.minute >= 30))
                 and now.hour < 16
             )
-            if not market_open:
-                print(f"Market closed ({now.strftime('%H:%M ET')}). Sleeping 5 min...")
-                await asyncio.sleep(300)
-                continue
+            # if not market_open:
+            #     print(f"Market closed ({now.strftime('%H:%M ET')}). Sleeping 5 min...")
+            #     await asyncio.sleep(300)
+            #     continue
            
             # 3. Refresh the shared market scan every SCAN_REFRESH_INTERVAL_MINUTES.
             # This also re-syncs every active user's bot_watchlist (see screener.py).
@@ -82,7 +82,9 @@ async def run_trading_bot():
             # against their own portfolio and their own merged candidate list
             # (bot_watchlist + personal watchlist).
             for user_id in active_user_ids:
+                print(f'working with user: {user_id}')
                 if user_id not in portfolio_managers:
+                    print(f"Creating new PortfolioManager for user {user_id}")
                     portfolio_managers[user_id] = PortfolioManager(
                         user_id=user_id,
                         db_path=DB_PATH,
@@ -95,6 +97,7 @@ async def run_trading_bot():
                     min_buy_confidence=0.65,
                     min_sell_confidence=0.60,
                 )
+                print(f'trades: {trades}')
 
                 # 5. Execute each trade
                 for trade in trades:
