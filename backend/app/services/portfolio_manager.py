@@ -234,6 +234,7 @@ class PortfolioManager:
         """
         # Get candidates from this user's bot_watchlist + personal watchlist
         candidates = self.get_watchlist()
+        print(f'candidates: {candidates}')
         
         if not candidates:
             print(f"⚠️  No stocks in watchlist for user {self.user_id}. Cannot generate trades.")
@@ -241,6 +242,7 @@ class PortfolioManager:
         
         # Score all candidates
         opportunities = self.score_all_stocks(candidates)
+        print(f'opportunities: {opportunities}')
         
         # Also score existing holdings not already covered above (i.e. positions
         # Also score existing holdings (not in watchlist)
@@ -268,6 +270,7 @@ class PortfolioManager:
                 entry_price=holding["purchase_price"],
                 days_held=day_trades,
             )
+            print(f'ticker: {ticker}, score: {score}')
             if "error" not in score:
                 opportunities.append({
                     "ticker": ticker,
@@ -283,8 +286,11 @@ class PortfolioManager:
         
         # 1. SELL SIGNALS (free up capital first)
         for opp in opportunities:
+            print('sell start')
             if opp['action'] == 'SELL' and opp['current_position'] > 0:
+                print('sell criteria met')
                 if opp['confidence'] >= min_sell_confidence:
+                    print('sell confidence met')
                     trades.append({
                         "ticker": opp['ticker'],
                         "action": "SELL",
@@ -301,6 +307,7 @@ class PortfolioManager:
         num_current_positions = len(holdings)
         num_sells = len([t for t in trades if t['action'] == 'SELL'])
         slots_available = max_positions - num_current_positions + num_sells
+        print(f'slots available: {slots_available}')
         
         if slots_available > 0:
             buy_candidates = [
@@ -309,6 +316,7 @@ class PortfolioManager:
                 and o['current_position'] == 0  # Not already holding
                 and o['confidence'] >= min_buy_confidence
             ]
+            print(f'buy candidates: {buy_candidates}')
             
             for opp in buy_candidates[:slots_available]:
                 allocation = balance * position_size_pct
@@ -326,39 +334,42 @@ class PortfolioManager:
                             "confidence": opp['confidence'],
                             "reason": f"AI Entry Signal ({opp['confidence']:.1%} confidence)"
                         })
-        
+        print('Generated trade plan')
         return trades
     
-    def get_portfolio_summary(self) -> Dict:
-        """Get summary of current portfolio with AI scores."""
-        balance, holdings = self.get_current_portfolio()
+    # def get_portfolio_summary(self) -> Dict:
+    #     """Get summary of current portfolio with AI scores."""
+    #     balance, holdings = self.get_current_portfolio()
         
-        total_value = balance
-        positions = []
-        
-        for ticker, qty in holdings.items():
-            price = get_current_price(ticker)
-            if price:
-                value = qty * price
-                total_value += value
+    #     total_value = balance
+    #     positions = []
+    #     print(holdings.items())
+    #     for ticker, info in holdings.items():
+    #         qty = info['quantity']
+    #         print(f'ticker: {ticker}')
+    #         print(f'qty: {qty}')
+    #         price = get_current_price(ticker)
+    #         if price:
+    #             value = qty * price
+    #             total_value += value
                 
-                score = self.scorer.score_stock(ticker, balance, qty)
+    #             score = self.scorer.score_stock(ticker, balance, qty)
                 
-                positions.append({
-                    "ticker": ticker,
-                    "quantity": qty,
-                    "price": price,
-                    "value": value,
-                    "ai_signal": score.get('action', 'UNKNOWN'),
-                    "confidence": score.get('confidence', 0)
-                })
+    #             positions.append({
+    #                 "ticker": ticker,
+    #                 "quantity": qty,
+    #                 "price": price,
+    #                 "value": value,
+    #                 "ai_signal": score.get('action', 'UNKNOWN'),
+    #                 "confidence": score.get('confidence', 0)
+    #             })
         
-        return {
-            "balance": balance,
-            "total_value": total_value,
-            "positions": positions,
-            "num_positions": len(positions)
-        }
+    #     return {
+    #         "balance": balance,
+    #         "total_value": total_value,
+    #         "positions": positions,
+    #         "num_positions": len(positions)
+    #     }
 
 
 if __name__ == "__main__":
@@ -372,11 +383,11 @@ if __name__ == "__main__":
             db_path="./tickerstream.db"
         )
         
-        # Get portfolio summary
-        summary = pm.get_portfolio_summary()
-        print(f"Portfolio Value: ${summary['total_value']:,.2f}")
-        print(f"Cash Balance: ${summary['balance']:,.2f}")
-        print(f"Positions: {summary['num_positions']}\n")
+        # # Get portfolio summary
+        # summary = pm.get_portfolio_summary()
+        # print(f"Portfolio Value: ${summary['total_value']:,.2f}")
+        # print(f"Cash Balance: ${summary['balance']:,.2f}")
+        # print(f"Positions: {summary['num_positions']}\n")
         
         # Generate trade plan
         trades = pm.generate_trade_plan(max_positions=5)
