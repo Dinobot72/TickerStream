@@ -1,11 +1,12 @@
 import asyncio
 from datetime import datetime
+import os
 from zoneinfo import ZoneInfo
 
 from app.core.database import get_db_connection
 from app.services.market_data import get_full_market_data
 from app.routers.trading import process_trade
-from app.services.screener import run_market_scan 
+from app.services.screener import run_market_scan
 from app.services.portfolio_manager import PortfolioManager
 from app.core.bot_state import get_active_bot_user_ids
 from app.services.ai_scorer import AIScorer
@@ -17,6 +18,9 @@ SCAN_REFRESH_INTERVAL_MINUTES = 60
 # Path to the shared RL model — loaded ONCE, not per user.
 MODEL_PATH = "../model/logs/best_model/best_model"
 
+_default_path = os.path.join(os.path.dirname(__file__), '..', '..', 'tickerstream.db')
+DB_PATH = os.getenv("DATABASE_PATH", _default_path)
+
 async def run_trading_bot():
     """
     Infinite loop for the bot. Trades every user who currently has the bot
@@ -24,7 +28,7 @@ async def run_trading_bot():
     single hardcoded account, and independent of whether that user has an
     active browser session at the time.
     """
-    
+   
     print("--- Background Trading Bot Initialized ---")
 
     # Load the RL model ONCE and share it across every user's PortfolioManager.
@@ -66,7 +70,7 @@ async def run_trading_bot():
                 print(f"Market closed ({now.strftime('%H:%M ET')}). Sleeping 5 min...")
                 await asyncio.sleep(300)
                 continue
-            
+           
             # 3. Refresh the shared market scan every SCAN_REFRESH_INTERVAL_MINUTES.
             # This also re-syncs every active user's bot_watchlist (see screener.py).
             if now.hour != last_scan_hour and now.minute < 5:
@@ -81,12 +85,11 @@ async def run_trading_bot():
                 if user_id not in portfolio_managers:
                     portfolio_managers[user_id] = PortfolioManager(
                         user_id=user_id,
-                        db_path="./tickerstream.db",
+                        db_path=DB_PATH,
                         scorer=shared_scorer,
                     )
                 portfolio_mgr = portfolio_managers[user_id]
 
-                
                 trades = portfolio_mgr.generate_trade_plan(
                     max_positions=5,
                     min_buy_confidence=0.65,
@@ -99,7 +102,7 @@ async def run_trading_bot():
                     action = trade['action']
                     qty = trade['quantity']
                     price = trade['price']
-                    
+                   
                     print(f"🤖 BOT (user {user_id}): {action} {qty} {ticker} @ ${price:.2f}  |  {trade['reason']}")
                     result = process_trade(user_id, ticker, action, qty, price, is_bot_trade=True)
                     if "error" in result:
@@ -113,5 +116,5 @@ async def run_trading_bot():
 
         except Exception as e:
             print(f"Bot Loop Error: {e}")
-        
+       
         await asyncio.sleep(BOT_LOOP_INTERVAL)

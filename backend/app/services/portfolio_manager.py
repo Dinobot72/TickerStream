@@ -1,9 +1,14 @@
+import os
 from typing import List, Dict, Optional, Tuple
 import sqlite3
+
 
 from app.services.ai_scorer import AIScorer
 from app.services.data_prep_live import get_current_price, N_CANDIDATES
 
+
+_default_path = os.path.join(os.path.dirname(__file__), '..', '..', 'tickerstream.db')
+DB_PATH = os.getenv("DATABASE_PATH", _default_path)
 
 
 class PortfolioManager:
@@ -12,11 +17,12 @@ class PortfolioManager:
     Handles stock selection, position sizing, and trade generation.
     """
 
+
     def __init__(
-        self, 
-        user_id: int, 
-        model_path: str = None, 
-        db_path: str = "tickerstream.db", 
+        self,
+        user_id: int,
+        model_path: str = None,
+        db_path: str = DB_PATH, 
         scorer: Optional[AIScorer] = None
     ):
         """

@@ -26,10 +26,10 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60
 COOKIE_NAME = "access_token"
 
 # --- CORS Config --- 
-origins_env = os.getenv("ALLOWED_ORIGINS")
+_origins_env = os.getenv("ALLOWED_ORIGINS")
 
-if origins_env:
-    ORIGINS = json.loads(origins_env)
+if _origins_env:
+    ORIGINS = json.loads(_origins_env)
 else:
     ORIGINS = [
         "https://ticker-stream.com",       # Production frontend
