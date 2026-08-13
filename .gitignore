@@ -7,7 +7,7 @@ data/
 __pycache__/*
 **/tensorboard_logs/*
 .env
-
+node_modules
 
 .env
 
