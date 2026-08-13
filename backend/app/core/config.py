@@ -26,10 +26,10 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60
 COOKIE_NAME = "access_token"
 
 # --- CORS Config --- 
-origins_env = os.getenv("ALLOWED_ORIGINS")
+_origins_env = os.getenv("ALLOWED_ORIGINS")
 
-if origins_env:
-    ORIGINS = json.loads(origins_env)
+if _origins_env:
+    ORIGINS = json.loads(_origins_env)
 else:
     ORIGINS = [
         "https://ticker-stream.com",       # Production frontend
@@ -38,11 +38,3 @@ else:
         "http://127.0.0.1:4200",           # Local development loopback
         "http://100.85.77.37",             # Tailscale IP
     ]
-    
-# --- Bot Configuration ---
-# Centralised bot user ID
-BOT_USER_ID: int = int(os.getenv("BOT_USER_ID", "11"))
-class GlobalBotState:
-    is_active: bool = False
-
-bot_state = GlobalBotState()

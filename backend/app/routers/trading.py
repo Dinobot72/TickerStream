@@ -3,11 +3,10 @@ from pydantic import BaseModel
 from typing import Optional
 
 from app.core.database import get_db_connection
-from app.core.config import bot_state
 from app.routers.auth import get_current_user
 from app.services.market_data import get_stock_price, get_stock_metrics, get_historical_data, get_full_market_data, screen_stock_gainers, get_stock_info
-# from app.services.ai_bridge import predict_action
 from app.services.risk_manager import RiskManager
+from app.core.bot_state import is_bot_active, set_bot_active
 
 
 router = APIRouter()
@@ -123,15 +122,15 @@ def get_change_info(ticker: str):
 # --- Bot Controls ---
 @router.get("/api/bot/status")
 def get_status(current_user: dict = Depends(get_current_user)):
-    status = "active" if bot_state.is_active else "inactive"
-    return {"status": status}
+    active = is_bot_active(current_user["user_id"])
+    return {"status": "active" if active else "inactive"}
 
 @router.post("/api/bot/start")
 def start_bot(current_user: dict = Depends(get_current_user)):
-    bot_state.is_active = True
+    set_bot_active(current_user["user_id"], True)
     return {"status": "active", "message": "Bot started"}
 
 @router.post("/api/bot/stop")
 def stop_bot(current_user: dict = Depends(get_current_user)):
-    bot_state.is_active = False
+    set_bot_active(current_user["user_id"], False)
     return {"status": "inactive", "message": "Bot stopped"}

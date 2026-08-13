@@ -12,6 +12,10 @@ DB_PATH = os.getenv("DATABASE_PATH", _default_path)
 def get_db_connection():
     conn = sql.connect(DB_PATH)
     conn.row_factory = sql.Row
+    # SQLite does not enforce FOREIGN KEY constraints unless this is set
+    # per-connection — without it, the FOREIGN KEY clauses below are
+    # decorative only.
+    conn.execute("PRAGMA foreign_keys = ON")
     return conn
 
 
@@ -88,6 +92,31 @@ def setup_database():
             ticker TEXT NOT NULL,
             added_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (user_id, ticker),
+            FOREIGN KEY (user_id) REFERENCES users (user_id)
+        )
+    ''')
+
+    # Bot User Table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS bot_settings (
+            user_id INTEGER PRIMARY KEY,
+            is_active BOOLEAN NOT NULL DEFAULT FALSE,
+            FOREIGN KEY (user_id) REFERENCES users (user_id)
+        )
+    ''')
+
+    # Portfolio Snapshots Table
+    # Append-only daily record of each user's balance. `portfolios.balance`
+    # is a single mutable row that gets overwritten on every trade, so it
+    # cannot answer "what was my balance yesterday?" — this table can.
+    # One row per (user_id, snapshot_date); insert/update once per day,
+    # typically at market close or on first trade of a new day.
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS portfolio_snapshots (
+            user_id INTEGER NOT NULL,
+            snapshot_date DATE NOT NULL,
+            balance REAL NOT NULL,
+            PRIMARY KEY (user_id, snapshot_date),
             FOREIGN KEY (user_id) REFERENCES users (user_id)
         )
     ''')
