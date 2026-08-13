@@ -66,10 +66,10 @@ async def run_trading_bot():
                 and (now.hour > 9 or (now.hour == 9 and now.minute >= 30))
                 and now.hour < 16
             )
-            # if not market_open:
-            #     print(f"Market closed ({now.strftime('%H:%M ET')}). Sleeping 5 min...")
-            #     await asyncio.sleep(300)
-            #     continue
+             if not market_open:
+                 print(f"Market closed ({now.strftime('%H:%M ET')}). Sleeping 5 min...")
+                 await asyncio.sleep(300)
+                 continue
            
             # 3. Refresh the shared market scan every SCAN_REFRESH_INTERVAL_MINUTES.
             # This also re-syncs every active user's bot_watchlist (see screener.py).
