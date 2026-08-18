@@ -28,8 +28,6 @@ def get_user_info( user_id: int, current_user: dict = Depends(get_current_user))
     )
     user = cursor.fetchone()
     conn.close()
-    if user is None:
-        raise HTTPException(status_code=404, detail="User not found")
     return dict(user)
 
 @router.post("/api/user/{user_id}/deposit")
@@ -113,7 +111,7 @@ def remove_watchlist(user_id: int, ticker: str, current_user: dict = Depends(get
     return {"message": "Removed from watchlist"}
 
 @router.get("/api/user/{user_id}/portfolio")
-def get_portfolio(user_id: int, current_user: dict = Depends(get_current_user)):
+def get_portfolio_balance(user_id: int, current_user: dict = Depends(get_current_user)):
     '''
     Returns the current balance of the user's portfolio.
 
@@ -129,7 +127,7 @@ def get_portfolio(user_id: int, current_user: dict = Depends(get_current_user)):
 
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT balance FROM portfolios WHERE user_id = ?", (user_id))
+    cursor.execute("SELECT balance FROM portfolios WHERE user_id = ?", (user_id,))
     balance = cursor.fetchone()['balance']
     conn.commit()
     conn.close()

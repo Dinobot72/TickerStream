@@ -16,7 +16,7 @@ def tmp_db(tmp_path, monkeypatch):
 
 
 @pytest.fixture
-def user(tmp_db):
+def logged_in_user(tmp_db):
     """Inserts a real user row. Opt-in — not every test wants a valid user
     (e.g. tests asserting FK behavior on a nonexistent user_id)."""
     conn = database.get_db_connection()
