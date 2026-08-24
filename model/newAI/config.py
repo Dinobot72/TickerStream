@@ -20,8 +20,8 @@ ENV_KWARGS = {
 }
 
 # Training
-TOTAL_TIMESTEPS = 5_000_000
-TEST_TIMESTEPS  = 50_000
+TOTAL_TIMESTEPS = 2_000_000
+TEST_TIMESTEPS  = 5_000
 N_ENVS          = 8
 LEARNING_RATE   = 5e-5          # Lower for stability
 BATCH_SIZE      = 256
