@@ -139,7 +139,7 @@ def train(test_mode=False):
     model.learn(total_timesteps=steps, callback=callbacks)
 
     model.save(os.path.join(LOG_DIR, "models", "final_model"))
-    env.save(os.path.join(LOG_DIR, "vec_normalize.pkl"))
+    env.save(os.path.join(LOG_DIR, "best_model", "vec_normalize.pkl"))
     print("\n✅ Training complete!")
 
 # ------------------------------------------------------------------
@@ -157,7 +157,7 @@ def evaluate(n_episodes=20):
         return
 
     env = DummyVecEnv([make_env_fn(test_tickers)])
-    env = VecNormalize.load(os.path.join(LOG_DIR, "vec_normalize.pkl"), env)
+    env = VecNormalize.load(os.path.join(LOG_DIR, "best_model", "vec_normalize.pkl"), env)
     env.training = False
 
     model = RecurrentPPO.load(os.path.join(LOG_DIR, "best_model", "best_model"))

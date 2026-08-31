@@ -13,11 +13,9 @@ node_modules
 
 # --- AI Training --- 
 model/data
-model/logs/best_model/*
 model/logs/models
 model/logs/tensorboard
 model/logs/evaluations.npz
-model/logs/vec_normalize.pkl
 model/logs/**.csv
 model/universe.csv
 model/logs/**.pkl
