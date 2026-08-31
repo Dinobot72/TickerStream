@@ -5,14 +5,20 @@ Uses trained RecurrentPPO model to score trading opportunities
 
 import os
 import pickle
+import sys
 import numpy as np
 import torch as th
 from sb3_contrib import RecurrentPPO
-from typing import Dict, List, Optional
-from app.services.data_prep_live import get_live_observation, get_current_price, N_CANDIDATES
+from typing import Dict, Optional
+
+# Add the project root to sys.path so the backend can find the model directory
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
+
+from app.services.data_prep_live import fetch_live_history
+from model.newAI.shared_obs import build_observation, get_window, PositionState
  
-# Must match AdvancedTradingEnv.N_CANDIDATES in model/newAI/advanced_training_env.py
-SELL_ACTION = N_CANDIDATES + 1  # 6
+# Match TradingEnvV4 discrete actions
+HOLD, BUY, SELL = 0, 1, 2
  
  
 class AIScorer:
@@ -115,8 +121,7 @@ class AIScorer:
  
     def score_stock(
         self,
-        candidates: List[str],
-        held_ticker: Optional[str],
+        ticker: str,
         balance: float,
         shares: int,
         entry_price: float = 0.0,
@@ -124,56 +129,41 @@ class AIScorer:
         initial_balance: float = 10_000.0,
     ) -> Dict:
         """
-        Score a stock and return trading signal.
- 
-        Args:
-            candidates: The fixed-size window of tickers for this observation.
-                Callers (PortfolioManager.score_all_stocks) always put the
-                ticker being evaluated at index 0 - this is required for the
-                action decoding below to be meaningful.
-            held_ticker: Ticker currently held (if any) for this evaluation
-            balance: Available cash
-            shares: Current shares owned of this ticker
-            entry_price: Price at which shares were purchased (if any)
-            days_held: Number of days the position has been held
- 
-        Returns:
-            {
-                "action": "BUY" | "SELL" | "HOLD",
-                "confidence": float (0-1),
-                "current_price": float,
-                "error": str (only if failed)
-            }
+        Score a SINGLE stock and return trading signal.
         """
-        if len(candidates) != N_CANDIDATES:
-            return {
-                "action": "HOLD",
-                "confidence": 0.0,
-                "error": f"candidates must have exactly {N_CANDIDATES} tickers, got {len(candidates)}",
-            }
- 
-        obs = get_live_observation(
-            candidates=candidates,
-            balance=balance,
-            held_ticker=held_ticker,
-            shares=shares,
-            entry_price=entry_price,
-            days_held=days_held,
-            initial_balance=initial_balance,
-        )
- 
-        if obs is None:
+        # 1. Fetch live data with indicators
+        df = fetch_live_history(ticker)
+        if df is None or df.empty:
             return {
                 "action": "HOLD",
                 "confidence": 0.0,
                 "error": "Could not build observation (insufficient data)",
             }
- 
-        obs = self._normalize(obs)
- 
-        state_key = held_ticker or "_".join(candidates)
-        current_price = get_current_price(held_ticker) if held_ticker else None
- 
+            
+        current_price = float(df.iloc[-1]['Close'])
+        
+        # 2. Build the exact observation array used during training
+        position = PositionState(
+            balance=balance,
+            initial_balance=initial_balance,
+            in_position=(shares > 0),
+            entry_price=entry_price,
+            current_price=current_price,
+            days_held=days_held,
+            max_days=252
+        )
+        
+        try:
+            # get_window pads automatically if history < 20 days
+            window = get_window(df, len(df))
+            obs = build_observation(window, position)
+            obs = self._normalize(obs)
+        except Exception as e:
+             return {"action": "HOLD", "confidence": 0.0, "error": f"Observation error: {e}"}
+
+        # 3. LSTM State Management (Now simplified to just track the ticker)
+        state_key = ticker
+        
         if state_key not in self.lstm_states:
             self.lstm_states[state_key] = None
             self.episode_starts[state_key] = True
@@ -198,33 +188,26 @@ class AIScorer:
             raw_action = int(action.item())
             confidence = float(probs[raw_action])
  
-            # Decode the real 7-action space. Candidate window index 0 is
-            # always the ticker being scored (see PortfolioManager), so:
-            if raw_action == 0:
+            # Decode the new 3-action space
+            if raw_action == HOLD:
                 predicted_action = "HOLD"
-            elif raw_action == 1:
-                predicted_action = "BUY"  # buy candidate[0] == this ticker
-            elif raw_action == SELL_ACTION:
+            elif raw_action == BUY:
+                predicted_action = "BUY"
+            elif raw_action == SELL:
                 predicted_action = "SELL" if shares > 0 else "HOLD"
             else:
-                # 2..5: model wants to buy some OTHER candidate in this
-                # window - not actionable for the ticker we're scoring.
                 predicted_action = "HOLD"
  
             return {
                 "action": predicted_action,
                 "confidence": confidence,
                 "current_price": current_price,
-                "raw_action": raw_action,  # handy for debugging/diagnose_model.py
+                "raw_action": raw_action,
             }
  
         except Exception as e:
             print(f"❌ Error during model predict: {e}")
-            return {
-                "action": "HOLD",
-                "confidence": 0.0,
-                "error": str(e),
-            }
+            return {"action": "HOLD", "confidence": 0.0, "error": str(e)}
  
     def reset_state(self, ticker: str):
         """
@@ -246,4 +229,3 @@ class AIScorer:
         """Reset all LSTM states (e.g., at market open)."""
         self.lstm_states = {}
         self.episode_starts = {}
- 

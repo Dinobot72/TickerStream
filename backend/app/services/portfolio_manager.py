@@ -4,7 +4,7 @@ import sqlite3
 
 
 from app.services.ai_scorer import AIScorer
-from app.services.data_prep_live import get_current_price, N_CANDIDATES
+from app.services.data_prep_live import get_current_price
 
 
 _default_path = os.path.join(os.path.dirname(__file__), '..', '..', 'tickerstream.db')
@@ -123,57 +123,13 @@ class PortfolioManager:
         conn.close()
         
         return result["day_trades"] if result and result["day_trades"] else 0
-    
-    def _build_candidates(self, watchlist: List[str], held_tickers: List[str]) -> List[str]:
-        """
-        Build a fixed-length N_CANDIDATES list for the observation space.
-
-        FIX: v2 requires exactly N_CANDIDATES tickers every call. We pull from the
-        watchlist, pad/trim as needed, and ensure any currently-held ticker is included
-        (so the model can see its own position in context).
-        """
-        # Start with held tickers so the model always sees what we own
-        pool: List[str] = []
-        for t in held_tickers:
-            if t not in pool:
-                pool.append(t)
-        for t in watchlist:
-            if t not in pool:
-                pool.append(t)
-
-        if len(pool) >= N_CANDIDATES:
-            return pool[:N_CANDIDATES]
-
-        # Pad with the first watchlist entries repeated if we don't have enough
-        while len(pool) < N_CANDIDATES and watchlist:
-            for t in watchlist:
-                if len(pool) >= N_CANDIDATES:
-                    break
-                if t not in pool:
-                    pool.append(t)
-            break  # Avoid infinite loop if watchlist is tiny
-
-        # Last resort: repeat tickers
-        while len(pool) < N_CANDIDATES:
-            pool.append(pool[0] if pool else "SPY")
-
-        return pool[:N_CANDIDATES]
 
     def score_all_stocks(self, candidates: List[str]) -> List[Dict]:
         """
-        Score each ticker as a potential trade target.
- 
-        FIX: Calls AIScorer with the v2 signature — all N_CANDIDATES tickers are
-        passed together as the observation window. For each evaluation we rotate the
-        ticker of interest to position 0 (held_ticker) so the portfolio features
-        reflect that stock's position accurately.
+        Score each ticker as a potential trade target individually.
         """
         balance, holdings = self.get_current_portfolio()
         day_trades = self.get_day_trades_used()
-        held_tickers = list(holdings.keys())
- 
-        # Build the fixed-size candidate window
-        candidate_window = self._build_candidates(candidates, held_tickers)
  
         opportunities = []
  
@@ -182,19 +138,12 @@ class PortfolioManager:
             shares = holding.get("quantity", 0)
             entry_price = holding.get("purchase_price", 0.0)
  
-            # Rotate ticker to front of window so it's the "held_ticker" the model focuses on
-            window = candidate_window.copy()
-            if ticker in window:
-                window.remove(ticker)
-            window = [ticker] + window[:N_CANDIDATES - 1]
- 
             score = self.scorer.score_stock(
-                candidates=window,
-                held_ticker=ticker if shares > 0 else None,
+                ticker=ticker,
                 balance=balance,
                 shares=shares,
                 entry_price=entry_price,
-                days_held=day_trades,  # approximation; replace with real days_held if tracked
+                days_held=day_trades,  
             )
  
             if "error" not in score:
@@ -254,22 +203,19 @@ class PortfolioManager:
         
         for ticker in held_tickers:
             if ticker in candidates:
-                continue  # already scored above via score_all_stocks
+                continue 
  
             holding = holdings[ticker]
-            window = self._build_candidates([ticker], held_tickers)
-            if ticker in window:
-                window.remove(ticker)
-            window = [ticker] + window[:N_CANDIDATES - 1]
- 
+            
+            # Simplified score_stock call
             score = self.scorer.score_stock(
-                candidates=window,
-                held_ticker=ticker,
+                ticker=ticker,
                 balance=balance,
                 shares=holding["quantity"],
                 entry_price=holding["purchase_price"],
                 days_held=day_trades,
             )
+
             print(f'ticker: {ticker}, score: {score}')
             if "error" not in score:
                 opportunities.append({
