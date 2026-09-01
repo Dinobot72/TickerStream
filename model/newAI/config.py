@@ -20,11 +20,16 @@ ENV_KWARGS = {
     "transaction_cost": 0.001,
     "slippage": 0.001,
     "initial_balance": 10000,
-    "position_size_pct": 0.50,
+    "position_size_pct": 0.85,
     "episode_length": 252,           # 1 year episodes
     "reward_scale": 100.0,           # step portfolio-return% -> reward
-    "trade_reward_scale": 20.0,      # closed-trade profit% -> reward
+    "trade_reward_scale": 40.0,      # closed-trade profit% -> reward
     "invalid_action_penalty": -0.5,
+    "invalid_action_penalty": -0.5,
+    "holding_decay_start_days": 15,  # no penalty for holds up to this long
+    "holding_decay_per_day": 0.05,   # then this much reward lost per extra day held -
+                                      # "trade often": makes stale opens actively cost
+                                      # something instead of being reward-free forever
 }
 
 # Training

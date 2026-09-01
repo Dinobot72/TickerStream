@@ -35,21 +35,12 @@ class AIScorer:
     per user.
     """
  
-    def __init__(
-        self,
-        model_path: str = "./model/logs/best_model/best_model",
-        vec_normalize_path: Optional[str] = None,
-    ):
+    def __init__( self, model_path: str = "./model/logs/best_model/best_model" ):
         """
-        Load the trained RecurrentPPO model and its VecNormalize stats.
+        Load the trained RecurrentPPO model.
  
         Args:
             model_path: Path to saved model (without .zip extension)
-            vec_normalize_path: Path to the vec_normalize.pkl saved by
-                training. Defaults to sibling "vec_normalize.pkl" one
-                directory up from model_path's parent
-                (model/logs/vec_normalize.pkl), matching main.py's
-                LOG_DIR layout.
         """
         try:
             self.model = RecurrentPPO.load(model_path)
@@ -59,39 +50,6 @@ class AIScorer:
         except Exception as e:
             print(f"❌ Failed to load AI model: {e}")
             raise
- 
-        if vec_normalize_path is None:
-            # model_path is .../model/logs/best_model/best_model
-            # vec_normalize.pkl is saved at .../model/logs/vec_normalize.pkl
-            best_model_dir = os.path.dirname(model_path)
-            log_dir = os.path.dirname(best_model_dir)
-            vec_normalize_path = os.path.join(log_dir, "vec_normalize.pkl")
- 
-        self.obs_rms = None
-        self.clip_obs = 10.0
-        self.epsilon = 1e-8
-        try:
-            with open(vec_normalize_path, "rb") as f:
-                vec_normalize = pickle.load(f)
-            # We only need the running stats - avoid VecNormalize.load(),
-            # which requires re-attaching a live VecEnv we don't have here.
-            self.obs_rms = vec_normalize.obs_rms
-            self.clip_obs = vec_normalize.clip_obs
-            self.epsilon = vec_normalize.epsilon
-            print(f"✅ VecNormalize stats loaded from {vec_normalize_path}")
-        except Exception as e:
-            print(
-                f"⚠️  Could not load VecNormalize stats from {vec_normalize_path}: {e}\n"
-                f"   Falling back to UNNORMALIZED observations - this will not match "
-                f"training and predictions will be unreliable."
-            )
- 
-    def _normalize(self, obs: np.ndarray) -> np.ndarray:
-        """Apply the same per-feature normalization used during training."""
-        if self.obs_rms is None:
-            return obs
-        normed = (obs - self.obs_rms.mean) / np.sqrt(self.obs_rms.var + self.epsilon)
-        return np.clip(normed, -self.clip_obs, self.clip_obs).astype(np.float32)
  
     def _action_probs(self, obs_tensor: np.ndarray, lstm_state, episode_start: bool) -> np.ndarray:
         """Get the policy's probability over all 7 discrete actions for this step."""
@@ -157,7 +115,6 @@ class AIScorer:
             # get_window pads automatically if history < 20 days
             window = get_window(df, len(df))
             obs = build_observation(window, position)
-            obs = self._normalize(obs)
         except Exception as e:
              return {"action": "HOLD", "confidence": 0.0, "error": f"Observation error: {e}"}
 
