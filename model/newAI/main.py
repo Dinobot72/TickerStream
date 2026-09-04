@@ -14,7 +14,8 @@ from config import (
     TOTAL_TIMESTEPS, TEST_TIMESTEPS, N_ENVS, POLICY_KWARGS,
     LEARNING_RATE, BATCH_SIZE, N_STEPS
 )
-from advanced_training_env import AdvancedTradingEnv
+from trading_env_v4 import TradingEnvV4
+from collapse_guard_callback import CollapseGuardCallback
 from callbacks import TensorboardCallback, MetricLoggerCallback
 
 os.makedirs(LOG_DIR, exist_ok=True)
@@ -27,16 +28,14 @@ os.makedirs(os.path.join(LOG_DIR, "plots"), exist_ok=True)
 
 def get_tickers():
     all_files = [
-        f.replace('.parquet', '') 
-        for f in os.listdir(DATA_DIR) 
+        f.replace('.parquet', '')
+        for f in os.listdir(DATA_DIR)
         if f.endswith('.parquet')
     ]
     if not all_files:
         raise ValueError(f"No training data found in {DATA_DIR}.")
-    
-    # Need at least 5 tickers for N_CANDIDATES
-    if len(all_files) < 5:
-        raise ValueError(f"Need at least 5 tickers, found {len(all_files)}")
+    if len(all_files) < 2:
+        raise ValueError(f"Need at least 2 tickers (train/test split), found {len(all_files)}")
 
     train, test = train_test_split(all_files, test_size=0.2, random_state=42)
     print(f"✅ {len(train)} train tickers, {len(test)} test tickers")
@@ -44,8 +43,20 @@ def get_tickers():
 
 def make_env_fn(tickers_list):
     def _init():
-        return AdvancedTradingEnv(tickers=tickers_list, **ENV_KWARGS)
+        return TradingEnvV4(tickers=tickers_list, **ENV_KWARGS)
     return _init
+
+def make_vec_normalize(venv, training: bool = True):
+    """
+    v4: observations are already hand-scaled in shared_obs.py, so
+    norm_obs=False here - normalizing twice was part of what saturated
+    a chunk of the input on live out-of-distribution tickers (see
+    diagnose_normalization.py). norm_reward=True is now the safety net
+    instead, paired with the smoother reward formula in TradingEnvV4.
+    """
+    venv = VecNormalize(venv, norm_obs=False, norm_reward=True, clip_reward=10.0)
+    venv.training = training
+    return venv
 
 # ------------------------------------------------------------------
 # Train
@@ -53,14 +64,12 @@ def make_env_fn(tickers_list):
 
 def train(test_mode=False):
     print(f"\n{'='*60}")
-    print(f"  TICKERSTREAM AI v2 - TRAINING")
+    print(f"  TICKERSTREAM AI v4 - TRAINING")
     print(f"{'='*60}")
     print(f"\n📋 Configuration:")
-    print(f"   Observation size:  {AdvancedTradingEnv.OBS_DIM} features")
-    print(f"   Candidates/step:   {AdvancedTradingEnv.N_CANDIDATES} stocks visible at once")
+    print(f"   Observation size:  {TradingEnvV4.OBS_DIM} features")
+    print(f"   Action space:      HOLD / BUY / SELL (single ticker per episode)")
     print(f"   Episode length:    {ENV_KWARGS['episode_length']} days (1 year)")
-    # print(f"   Stop loss:         {ENV_KWARGS['stop_loss_pct']*100:.0f}%")
-    # print(f"   Take profit:       {ENV_KWARGS['take_profit_pct']*100:.0f}%")
     print(f"   Parallel envs:     {N_ENVS}")
     print(f"   Total timesteps:   {TOTAL_TIMESTEPS:,}")
     print(f"   Learning rate:     {LEARNING_RATE}")
@@ -73,11 +82,11 @@ def train(test_mode=False):
 
     # Training environments
     env = DummyVecEnv([make_env_fn(train_tickers) for _ in range(N_ENVS)])
-    env = VecNormalize(env, norm_obs=True, norm_reward=False, clip_obs=10.)
+    env = make_vec_normalize(env, training=True)
 
     # Eval environment
     eval_env = DummyVecEnv([make_env_fn(test_tickers)])
-    eval_env = VecNormalize(eval_env, norm_obs=True, norm_reward=False, clip_obs=10.)
+    eval_env = make_vec_normalize(eval_env, training=False)
 
     steps    = TEST_TIMESTEPS if test_mode else TOTAL_TIMESTEPS
     eval_freq = 1000 if test_mode else 10000
@@ -94,12 +103,18 @@ def train(test_mode=False):
             eval_env,
             best_model_save_path=os.path.join(LOG_DIR, "best_model"),
             eval_freq=eval_freq,
-            n_eval_episodes=10,       # Average over 10 episodes for stable eval
+            n_eval_episodes=10,
             deterministic=True,
             verbose=1
         ),
         TensorboardCallback(),
-        MetricLoggerCallback(LOG_DIR)
+        MetricLoggerCallback(LOG_DIR),
+        # Halts training early if entropy stays near max(ln 3) instead of
+        # gradually decreasing - the exact signature of the v3 collapse.
+        CollapseGuardCallback(
+            check_every_steps=10_000,
+            max_entropy_for_n_actions=TradingEnvV4.N_ACTIONS,
+        ),
     ]
 
     print("🤖 Initializing RecurrentPPO...")
@@ -111,11 +126,11 @@ def train(test_mode=False):
         learning_rate=LEARNING_RATE,
         n_steps=N_STEPS,
         batch_size=BATCH_SIZE,
-        ent_coef=0.01,              # Lower entropy - let it converge
+        ent_coef=0.01,
         clip_range=0.2,
         vf_coef=0.5,
         max_grad_norm=0.5,
-        gamma=0.99,                 # Value future rewards
+        gamma=0.99,
         gae_lambda=0.95,
         policy_kwargs=POLICY_KWARGS
     )
@@ -124,15 +139,15 @@ def train(test_mode=False):
     model.learn(total_timesteps=steps, callback=callbacks)
 
     model.save(os.path.join(LOG_DIR, "models", "final_model"))
-    env.save(os.path.join(LOG_DIR, "vec_normalize.pkl"))
+    env.save(os.path.join(LOG_DIR, "best_model", "vec_normalize.pkl"))
     print("\n✅ Training complete!")
 
 # ------------------------------------------------------------------
 # Evaluate
 # ------------------------------------------------------------------
 
-def evaluate():
-    print("--- RUNNING EVALUATION ---")
+def evaluate(n_episodes=20):
+    print(f"--- RUNNING EVALUATION ({n_episodes} episodes) ---")
 
     try:
         with open(os.path.join(LOG_DIR, "test_tickers.pkl"), "rb") as f:
@@ -142,18 +157,25 @@ def evaluate():
         return
 
     env = DummyVecEnv([make_env_fn(test_tickers)])
-    env = VecNormalize.load(os.path.join(LOG_DIR, "vec_normalize.pkl"), env)
+    env = VecNormalize.load(os.path.join(LOG_DIR, "best_model", "vec_normalize.pkl"), env)
     env.training = False
 
     model = RecurrentPPO.load(os.path.join(LOG_DIR, "best_model", "best_model"))
 
     obs = env.reset()
-    ai_portfolio = []
-    trade_log = []
     lstm_states = None
     episode_starts = np.ones(1, dtype=bool)
 
-    for step in range(2000):
+    episode_curves = []
+    current_curve = []
+    trade_log = []
+    episode_idx = 0
+
+    # Safety cap in case an episode never terminates for some reason -
+    # avoids an infinite loop instead of trusting `dones` alone.
+    max_steps = n_episodes * (ENV_KWARGS.get("episode_length", 252) + 10)
+    step = 0
+    while episode_idx < n_episodes and step < max_steps:
         action, lstm_states = model.predict(
             obs, state=lstm_states,
             episode_start=episode_starts, deterministic=True
@@ -162,49 +184,71 @@ def evaluate():
         episode_starts = dones
 
         info = infos[0]
-        ai_portfolio.append(info['portfolio_value'])
+        current_curve.append(info['portfolio_value'])
 
         if info.get('trade_closed'):
             trade_log.append({
+                "Episode": episode_idx,
                 "Step": step,
-                "Ticker": info.get('held_ticker'),
-                "Candidates": str(info.get('candidates', [])),
+                "Ticker": info.get('ticker'),
                 "Result": "WIN" if info.get('is_win') else "LOSS",
+                "Profit_Pct": info.get('profit_pct', 0.0),
                 "Holding_Period": info.get('holding_period', 0),
             })
 
+        step += 1
         if dones[0]:
-            break
+            episode_curves.append(current_curve)
+            current_curve = []
+            episode_idx += 1
 
-    # Plot
+    if current_curve:  # ran out of steps mid-episode - keep partial data
+        episode_curves.append(current_curve)
+
+    if not episode_curves:
+        print("❌ No completed episodes - check episode_length / data availability")
+        return
+
+    finals = np.array([c[-1] for c in episode_curves if c])
+    print(f"\nEpisodes completed: {len(episode_curves)}")
+    print(f"Mean final portfolio: ${finals.mean():,.2f} ({(finals.mean()/10000-1)*100:+.1f}%)")
+    print(f"Std dev:              ${finals.std():,.2f}")
+    print(f"Min / Max:            ${finals.min():,.2f} / ${finals.max():,.2f}")
+
+    # Mean curve +/- std band across episodes (truncated to shortest episode
+    # so every column of the array has a value from every episode)
+    min_len = min(len(c) for c in episode_curves)
+    curve_arr = np.array([c[:min_len] for c in episode_curves])
+    mean_curve = curve_arr.mean(axis=0)
+    std_curve = curve_arr.std(axis=0)
+
     plt.figure(figsize=(12, 5))
-    plt.plot(ai_portfolio, label='AI Agent', color='blue', linewidth=2)
+    plt.plot(mean_curve, label=f'AI Agent (mean of {len(episode_curves)} episodes)', color='blue', linewidth=2)
+    plt.fill_between(range(min_len), mean_curve - std_curve, mean_curve + std_curve,
+                      color='blue', alpha=0.15, label='±1 std')
     plt.axhline(y=10000, color='gray', linestyle='--', alpha=0.5, label='Starting Balance')
-    plt.title("AI Agent Performance - Test Tickers (v2)")
+    plt.title(f"AI Agent Performance - Test Tickers (v4, n={len(episode_curves)} episodes)")
     plt.xlabel("Steps")
     plt.ylabel("Portfolio Value ($)")
     plt.legend()
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
-    plt.savefig(os.path.join(LOG_DIR, "plots", "eval_v2.png"))
-    print(f"Plot saved.")
+    plt.savefig(os.path.join(LOG_DIR, "plots", "eval_v4.png"))
+    print(f"\nPlot saved.")
 
     if trade_log:
         df_trades = pd.DataFrame(trade_log)
         df_trades.to_csv(os.path.join(LOG_DIR, "test_trades.csv"), index=False)
         win_rate = df_trades['Result'].eq('WIN').mean()
-        print(f"\nTotal Trades: {len(df_trades)}")
+        print(f"Total Trades: {len(df_trades)} across {len(episode_curves)} episodes")
         print(f"Win Rate: {win_rate:.2%}")
-        
-        final_val = ai_portfolio[-1] if ai_portfolio else 10000
-        print(f"Final Portfolio: ${final_val:,.2f} ({(final_val/10000-1)*100:+.1f}%)")
 
 # ------------------------------------------------------------------
 # Benchmark
 # ------------------------------------------------------------------
 
-def benchmark():
-    print("--- RUNNING RANDOM BENCHMARK ---")
+def benchmark(n_episodes=20):
+    print(f"--- RUNNING RANDOM BENCHMARK ({n_episodes} episodes) ---")
 
     try:
         with open(os.path.join(LOG_DIR, "test_tickers.pkl"), "rb") as f:
@@ -214,24 +258,36 @@ def benchmark():
         return
 
     env = DummyVecEnv([make_env_fn(test_tickers)])
-    env = VecNormalize(env, norm_obs=True, norm_reward=False, clip_obs=10.)
-    env.training = False
+    env = make_vec_normalize(env, training=False)
 
     obs = env.reset()
-    portfolio_values = []
+    episode_finals = []
+    current_curve = []
+    episode_idx = 0
 
-    for _ in range(2000):
+    max_steps = n_episodes * (ENV_KWARGS.get("episode_length", 252) + 10)
+    step = 0
+    while episode_idx < n_episodes and step < max_steps:
         action = [env.action_space.sample()]
         obs, _, dones, infos = env.step(action)
-        portfolio_values.append(infos[0]['portfolio_value'])
+        current_curve.append(infos[0]['portfolio_value'])
+        step += 1
         if dones[0]:
-            break
+            episode_finals.append(current_curve[-1])
+            current_curve = []
+            episode_idx += 1
 
+    if not episode_finals and current_curve:
+        episode_finals.append(current_curve[-1])
+
+    finals = np.array(episode_finals)
     with open(os.path.join(LOG_DIR, "benchmark_data.pkl"), "wb") as f:
-        pickle.dump(portfolio_values, f)
+        pickle.dump(finals, f)
 
-    final = portfolio_values[-1] if portfolio_values else 10000
-    print(f"Random agent final: ${final:,.2f} ({(final/10000-1)*100:+.1f}%)")
+    print(f"\nEpisodes completed: {len(finals)}")
+    print(f"Mean final: ${finals.mean():,.2f} ({(finals.mean()/10000-1)*100:+.1f}%)")
+    print(f"Std dev:    ${finals.std():,.2f}")
+    print(f"Min / Max:  ${finals.min():,.2f} / ${finals.max():,.2f}")
 
 # ------------------------------------------------------------------
 # Entry Point
@@ -244,6 +300,10 @@ if __name__ == "__main__":
         choices=["train", "test_train", "evaluate", "benchmark"],
         required=True
     )
+    parser.add_argument(
+        "--episodes", type=int, default=20,
+        help="Number of episodes to average over for evaluate/benchmark (default: 20)"
+    )
     args = parser.parse_args()
 
     if args.mode == "train":
@@ -251,6 +311,6 @@ if __name__ == "__main__":
     elif args.mode == "test_train":
         train(test_mode=True)
     elif args.mode == "evaluate":
-        evaluate()
+        evaluate(n_episodes=args.episodes)
     elif args.mode == "benchmark":
-        benchmark()
+        benchmark(n_episodes=args.episodes)

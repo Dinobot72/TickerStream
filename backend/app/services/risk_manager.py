@@ -4,7 +4,12 @@ from app.core.database import get_db_connection
 
 # --- CONFIGURATION ---
 PDT_MIN_BALANCE = 25000.0       # SEC rule: $25k minimum for pattern day traders
-MAX_POSITION_PCT = 0.20         # Never put >20% of buying power into one trade
+MAX_POSITION_PCT = 0.50         # Never put more than this fraction of buying power
+                                 # into one trade. NOTE: keep this >= PortfolioManager's
+                                 # generate_trade_plan(position_size_pct=...) default,
+                                 # or every default-sized BUY gets silently rejected here
+                                 # (was 0.40 with a comment claiming 20% - neither matched
+                                 # the live 0.45 default actually being used).
 MAX_DAY_TRADES = 3              # Max day trades in rolling 5-day window
 DAILY_LOSS_LIMIT_PCT = 0.02     # Halt trading if portfolio drops 2% in one day
 

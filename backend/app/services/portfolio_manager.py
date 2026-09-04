@@ -4,7 +4,7 @@ import sqlite3
 
 
 from app.services.ai_scorer import AIScorer
-from app.services.data_prep_live import get_current_price, N_CANDIDATES
+from app.services.data_prep_live import get_current_price
 
 
 _default_path = os.path.join(os.path.dirname(__file__), '..', '..', 'tickerstream.db')
@@ -123,57 +123,45 @@ class PortfolioManager:
         conn.close()
         
         return result["day_trades"] if result and result["day_trades"] else 0
-    
-    def _build_candidates(self, watchlist: List[str], held_tickers: List[str]) -> List[str]:
+
+    def get_position_entry_dates(self) -> Dict[str, int]:
         """
-        Build a fixed-length N_CANDIDATES list for the observation space.
-
-        FIX: v2 requires exactly N_CANDIDATES tickers every call. We pull from the
-        watchlist, pad/trim as needed, and ensure any currently-held ticker is included
-        (so the model can see its own position in context).
+        Days held for each currently-open position, from the most recent BUY
+        trade per ticker in `trades`. Falls back to 0 for a ticker with no
+        matching BUY row (shouldn't normally happen for an open position,
+        but avoids crashing on a data gap).
         """
-        # Start with held tickers so the model always sees what we own
-        pool: List[str] = []
-        for t in held_tickers:
-            if t not in pool:
-                pool.append(t)
-        for t in watchlist:
-            if t not in pool:
-                pool.append(t)
+        conn = self.get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT ticker, MAX(timestamp) as entry_timestamp
+            FROM trades
+            WHERE user_id = ? AND action = 'BUY'
+            GROUP BY ticker
+            """,
+            (self.user_id,),
+        )
+        rows = cursor.fetchall()
+        conn.close()
 
-        if len(pool) >= N_CANDIDATES:
-            return pool[:N_CANDIDATES]
-
-        # Pad with the first watchlist entries repeated if we don't have enough
-        while len(pool) < N_CANDIDATES and watchlist:
-            for t in watchlist:
-                if len(pool) >= N_CANDIDATES:
-                    break
-                if t not in pool:
-                    pool.append(t)
-            break  # Avoid infinite loop if watchlist is tiny
-
-        # Last resort: repeat tickers
-        while len(pool) < N_CANDIDATES:
-            pool.append(pool[0] if pool else "SPY")
-
-        return pool[:N_CANDIDATES]
+        from datetime import datetime
+        now = datetime.now()
+        days_held = {}
+        for row in rows:
+            try:
+                entry = datetime.fromisoformat(row["entry_timestamp"])
+                days_held[row["ticker"]] = max(0, (now - entry).days)
+            except (TypeError, ValueError):
+                days_held[row["ticker"]] = 0
+        return days_held
 
     def score_all_stocks(self, candidates: List[str]) -> List[Dict]:
         """
-        Score each ticker as a potential trade target.
- 
-        FIX: Calls AIScorer with the v2 signature — all N_CANDIDATES tickers are
-        passed together as the observation window. For each evaluation we rotate the
-        ticker of interest to position 0 (held_ticker) so the portfolio features
-        reflect that stock's position accurately.
+        Score each ticker as a potential trade target individually.
         """
         balance, holdings = self.get_current_portfolio()
-        day_trades = self.get_day_trades_used()
-        held_tickers = list(holdings.keys())
- 
-        # Build the fixed-size candidate window
-        candidate_window = self._build_candidates(candidates, held_tickers)
+        entry_dates = self.get_position_entry_dates()
  
         opportunities = []
  
@@ -181,20 +169,19 @@ class PortfolioManager:
             holding = holdings.get(ticker, {})
             shares = holding.get("quantity", 0)
             entry_price = holding.get("purchase_price", 0.0)
- 
-            # Rotate ticker to front of window so it's the "held_ticker" the model focuses on
-            window = candidate_window.copy()
-            if ticker in window:
-                window.remove(ticker)
-            window = [ticker] + window[:N_CANDIDATES - 1]
+            # Real holding-period days for an open position, 0 if flat.
+            # (Previously this was passed self.get_day_trades_used() - the
+            # PDT day-trade counter, 0-3 - which silently fed the model a
+            # meaningless number for the days_held feature it was trained
+            # to use for exit timing.)
+            days_held = entry_dates.get(ticker, 0) if shares > 0 else 0
  
             score = self.scorer.score_stock(
-                candidates=window,
-                held_ticker=ticker if shares > 0 else None,
+                ticker=ticker,
                 balance=balance,
                 shares=shares,
                 entry_price=entry_price,
-                days_held=day_trades,  # approximation; replace with real days_held if tracked
+                days_held=days_held,
             )
  
             if "error" not in score:
@@ -208,7 +195,9 @@ class PortfolioManager:
                     }
                 )
             else:
-                print(f"⚠️  Score error for {ticker}: {score['error']}")
+                # Only print actual errors, skip the expected missing data warnings
+                if "insufficient data" not in score["error"]:
+                    print(f"⚠️  Score error for {ticker}: {score['error']}")
  
         opportunities.sort(key=lambda x: x["confidence"], reverse=True)
         return opportunities
@@ -216,9 +205,9 @@ class PortfolioManager:
     def generate_trade_plan(
         self, 
         max_positions: int = 5,
-        min_buy_confidence: float = 0.65,
+        min_buy_confidence: float = 0.25,
         min_sell_confidence: float = 0.60,
-        position_size_pct: float = 0.20
+        position_size_pct: float = 0.45
     ) -> List[Dict]:
         """
         Generate a list of trades to execute.
@@ -245,31 +234,26 @@ class PortfolioManager:
         print(f'opportunities: {opportunities}')
         
         # Also score existing holdings not already covered above (i.e. positions
-        # Also score existing holdings (not in watchlist)
         # the user holds that fell out of their bot_watchlist/personal watchlist).
         balance, holdings = self.get_current_portfolio()
-        balance, holdings = self.get_current_portfolio()
         held_tickers = list(holdings.keys())
-        day_trades = self.get_day_trades_used()
+        entry_dates = self.get_position_entry_dates()
         
         for ticker in held_tickers:
             if ticker in candidates:
-                continue  # already scored above via score_all_stocks
+                continue 
  
             holding = holdings[ticker]
-            window = self._build_candidates([ticker], held_tickers)
-            if ticker in window:
-                window.remove(ticker)
-            window = [ticker] + window[:N_CANDIDATES - 1]
- 
+            
+            # Simplified score_stock call
             score = self.scorer.score_stock(
-                candidates=window,
-                held_ticker=ticker,
+                ticker=ticker,
                 balance=balance,
                 shares=holding["quantity"],
                 entry_price=holding["purchase_price"],
-                days_held=day_trades,
+                days_held=entry_dates.get(ticker, 0),
             )
+
             print(f'ticker: {ticker}, score: {score}')
             if "error" not in score:
                 opportunities.append({
@@ -336,69 +320,3 @@ class PortfolioManager:
                         })
         print('Generated trade plan')
         return trades
-    
-    # def get_portfolio_summary(self) -> Dict:
-    #     """Get summary of current portfolio with AI scores."""
-    #     balance, holdings = self.get_current_portfolio()
-        
-    #     total_value = balance
-    #     positions = []
-    #     print(holdings.items())
-    #     for ticker, info in holdings.items():
-    #         qty = info['quantity']
-    #         print(f'ticker: {ticker}')
-    #         print(f'qty: {qty}')
-    #         price = get_current_price(ticker)
-    #         if price:
-    #             value = qty * price
-    #             total_value += value
-                
-    #             score = self.scorer.score_stock(ticker, balance, qty)
-                
-    #             positions.append({
-    #                 "ticker": ticker,
-    #                 "quantity": qty,
-    #                 "price": price,
-    #                 "value": value,
-    #                 "ai_signal": score.get('action', 'UNKNOWN'),
-    #                 "confidence": score.get('confidence', 0)
-    #             })
-        
-    #     return {
-    #         "balance": balance,
-    #         "total_value": total_value,
-    #         "positions": positions,
-    #         "num_positions": len(positions)
-    #     }
-
-
-if __name__ == "__main__":
-    # Test the portfolio manager
-    print("=== Testing Portfolio Manager ===\n")
-    
-    try:
-        pm = PortfolioManager(
-            user_id=11,
-            model_path="../model/logs/best_model/best_model",
-            db_path="./tickerstream.db"
-        )
-        
-        # # Get portfolio summary
-        # summary = pm.get_portfolio_summary()
-        # print(f"Portfolio Value: ${summary['total_value']:,.2f}")
-        # print(f"Cash Balance: ${summary['balance']:,.2f}")
-        # print(f"Positions: {summary['num_positions']}\n")
-        
-        # Generate trade plan
-        trades = pm.generate_trade_plan(max_positions=5)
-        
-        if trades:
-            print(f"Generated {len(trades)} trade(s):\n")
-            for trade in trades:
-                print(f"  {trade['action']} {trade['quantity']} {trade['ticker']} @ ${trade['price']:.2f}")
-                print(f"    → {trade['reason']}\n")
-        else:
-            print("No trades generated (no high-confidence signals)")
-            
-    except Exception as e:
-        print(f"Error: {e}")
