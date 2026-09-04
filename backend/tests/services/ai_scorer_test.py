@@ -1,58 +1,74 @@
 import pytest
 import numpy as np
+import pandas as pd
 from unittest.mock import patch, MagicMock
 from app.services.ai_scorer import AIScorer
 
 @pytest.fixture
-def mock_ppo():
-    with patch('app.services.ai_scorer.RecurrentPPO.load') as mock_load:
+def mock_dependencies():
+    with patch('app.services.ai_scorer.RecurrentPPO.load') as mock_load, \
+         patch('app.services.ai_scorer.fetch_live_history') as mock_fetch, \
+         patch('app.services.ai_scorer.build_observation') as mock_build, \
+         patch('app.services.ai_scorer.get_window') as mock_window:
+        
         mock_model = MagicMock()
-        # Mock predict to return a discrete action (0=HOLD, 1=BUY, 2=SELL) and a dummy hidden state
-        mock_model.predict.return_value = (np.array([1]), np.array([0.5, 0.5]))
+        # Returns (action, next_state). 1 = BUY
+        mock_model.predict.return_value = (np.array([1]), (np.zeros((1, 1, 64)), np.zeros((1, 1, 64))))
+        
+        mock_policy = MagicMock()
+        mock_policy.obs_to_tensor.return_value = (MagicMock(), MagicMock())
+        
+        # Define the LSTM hidden state shape for the zero-state initialization
+        mock_policy.lstm_hidden_state_shape = (1, 1, 64)
+        
+        # Explicitly set the device to 'cpu' to satisfy th.tensor()
+        mock_policy.device = 'cpu'
+        
+        # Properly mock the PyTorch tensor chain: probs.cpu().numpy()
+        mock_dist = MagicMock()
+        mock_probs = MagicMock()
+        mock_probs.cpu.return_value.numpy.return_value = np.array([[0.2, 0.7, 0.1]])
+        mock_dist.distribution.probs = mock_probs
+        
+        mock_policy.get_distribution.return_value = (mock_dist, None)
+        mock_model.policy = mock_policy
         mock_load.return_value = mock_model
-        yield mock_load
+        
+        # Use a real pandas DataFrame so df.iloc[-1]['Close'] correctly yields 150.0
+        mock_df = pd.DataFrame({'Close': [150.0]})
+        mock_fetch.return_value = mock_df
+        
+        # Mock Observation
+        mock_build.return_value = np.zeros(100)
+        
+        yield mock_load, mock_fetch, mock_build
 
 @pytest.fixture
-def scorer(mock_ppo):
+def scorer(mock_dependencies):
     return AIScorer(model_path="dummy_path")
 
 class TestAIScorer:
-    def test_init_loads_model(self, mock_ppo):
-        scorer = AIScorer("dummy_path")
-        mock_ppo.assert_called_once_with("dummy_path")
-        assert scorer.model is not None
-
-    def test_normalize_obs_without_stats(self, scorer):
-        obs = np.array([1.0, 2.0, 3.0])
-        scorer.obs_mean = None
-        result = scorer._normalize_obs(obs)
-        np.testing.assert_array_equal(result, obs)
-
-    @patch('app.services.ai_scorer.get_live_observation')
-    @patch('app.services.ai_scorer.get_current_price')
-    def test_score_stock_success(self, mock_get_price, mock_get_obs, scorer):
-        # Mock dependencies
-        mock_get_obs.return_value = np.zeros(707)
-        mock_get_price.return_value = 150.0
-        
-        candidates = ["AAPL", "MSFT", "GOOGL", "AMZN", "SPY"]
+    def test_score_stock_buy_action(self, scorer, mock_dependencies):
         result = scorer.score_stock(
-            candidates=candidates,
-            held_ticker="AAPL",
+            ticker="AAPL",
             balance=10000.0,
-            shares=10
+            shares=0
         )
         
         assert result["action"] == "BUY"
         assert result["confidence"] == 0.7
         assert result["current_price"] == 150.0
+        assert result["raw_action"] == 1
         assert "AAPL" in scorer.lstm_states
 
-    def test_score_stock_invalid_candidates_length(self, scorer):
-        # Must have exactly 5 candidates[cite: 1]
-        result = scorer.score_stock(["AAPL"], "AAPL", 10000.0, 10)
-        assert result["action"] == "HOLD"
-        assert "error" in result
+    def test_score_stock_insufficient_data(self, scorer):
+        with patch('app.services.ai_scorer.fetch_live_history') as mock_fetch:
+            mock_fetch.return_value = None
+            
+            result = scorer.score_stock("AAPL", 10000.0, 0)
+            
+            assert result["action"] == "HOLD"
+            assert "insufficient data" in result["error"]
 
     def test_reset_state(self, scorer):
         scorer.lstm_states["AAPL"] = np.array([0.1])

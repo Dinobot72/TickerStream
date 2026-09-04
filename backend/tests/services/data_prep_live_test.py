@@ -2,12 +2,7 @@ import pytest
 import pandas as pd
 import numpy as np
 from unittest.mock import patch, MagicMock
-from app.services.data_prep_live import (
-    add_indicators, 
-    _build_stock_features, 
-    get_live_observation,
-    OBS_DIM
-)
+from app.services.data_prep_live import add_indicators, fetch_live_history, get_current_price
 
 @pytest.fixture
 def sample_df():
@@ -27,24 +22,41 @@ class TestDataPrepLive:
         assert "RSI" in df_ind.columns
         assert "MACD" in df_ind.columns
 
-    def test_build_stock_features_length(self, sample_df):
-        # Needs 7 features over 20 lookback days = 140 features[cite: 2]
-        df_ind = add_indicators(sample_df).fillna(0)
-        features = _build_stock_features(df_ind)
-        assert len(features) == 140
-        assert all(isinstance(f, float) for f in features)
+    @patch('app.services.data_prep_live.yf.Ticker')
+    def test_fetch_live_history(self, mock_ticker):
+        # Generate 250 days of data to pass the len(hist) < 220 check
+        dates = pd.date_range("2023-01-01", periods=250)
+        large_df = pd.DataFrame({
+            "Open": np.random.uniform(100, 150, 250),
+            "High": np.random.uniform(100, 150, 250),
+            "Low": np.random.uniform(100, 150, 250),
+            "Close": np.random.uniform(100, 150, 250),
+            "Volume": np.random.randint(1000, 10000, 250)
+        }, index=dates)
+        
+        mock_hist = MagicMock()
+        mock_hist.history.return_value = large_df
+        mock_ticker.return_value = mock_hist
+        
+        result = fetch_live_history("AAPL")
+        assert result is not None
+        assert "RSI" in result.columns
 
-    @patch('app.services.data_prep_live._fetch_with_indicators')
-    def test_get_live_observation_shape(self, mock_fetch, sample_df):
-        mock_fetch.return_value = add_indicators(sample_df).fillna(0)
-        candidates = ["AAPL", "MSFT", "GOOGL", "NVDA", "META"]
+    @patch('app.services.data_prep_live.yf.Ticker')
+    def test_fetch_live_history_insufficient_data(self, mock_ticker, sample_df):
+        # sample_df is only 30 days, which should trigger the < 220 rejection
+        mock_hist = MagicMock()
+        mock_hist.history.return_value = sample_df
+        mock_ticker.return_value = mock_hist
         
-        obs = get_live_observation(
-            candidates=candidates,
-            balance=10000.0,
-            held_ticker=None,
-            shares=0
-        )
+        result = fetch_live_history("AAPL")
+        assert result is None
         
-        assert isinstance(obs, np.ndarray)
-        assert obs.shape == (OBS_DIM,) # 707 dimensions[cite: 2]
+    @patch('app.services.data_prep_live.yf.Ticker')
+    def test_get_current_price(self, mock_ticker):
+        mock_hist = MagicMock()
+        mock_hist.history.return_value = pd.DataFrame({"Close": [150.0]})
+        mock_ticker.return_value = mock_hist
+        
+        price = get_current_price("AAPL")
+        assert price == 150.0

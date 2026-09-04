@@ -66,8 +66,8 @@ class TestBuyChecks:
         assert "Insufficient funds" in msg
 
     def test_position_size_limit(self, logged_in_user):
-        set_balance(logged_in_user, 1000.0)  # max position = 200; cost = 250
-        allowed, msg = RiskManager(logged_in_user).can_trade("AAPL", "BUY", 50.0, 5)
+        set_balance(logged_in_user, 1000.0)  # max position = 500; cost = 550
+        allowed, msg = RiskManager(logged_in_user).can_trade("AAPL", "BUY", 50.0, 11)
         assert allowed is False
         assert "Position too large" in msg
 
