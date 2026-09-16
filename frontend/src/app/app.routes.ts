@@ -9,6 +9,7 @@ import { TradingComponent } from './dashboard/trading/trading.component';
 import { AiManagementComponent } from './dashboard/ai-management/ai-management.component';
 // import { OrdersComponent } from './dashboard/orders/orders.component';
 import { SettingsComponent } from './dashboard/settings/settings.component';
+import { BrokerComponent } from './dashboard/broker/broker.component';
 import { authGuard } from './auth-guard';
 
 export const routes: Routes = [
@@ -24,6 +25,7 @@ export const routes: Routes = [
             { path: 'watchlist', component: WatchlistComponent },
             { path: 'trading', component: TradingComponent },
             { path: 'ai-management', component: AiManagementComponent },
+            { path: 'broker', component: BrokerComponent },
             { path: 'settings', component: SettingsComponent },
             { path: '**', redirectTo: '', pathMatch: 'full' }
         ]

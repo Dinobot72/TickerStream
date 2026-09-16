@@ -1,0 +1,355 @@
+<div class="broker-container">
+  <h1 class="page-title">Brokerage</h1>
+
+  @if (isLoadingStatus()) {
+    <p class="loading-message">Loading broker status...</p>
+  } @else {
+    <!-- Global messages -->
+    @if (error()) {
+      <div class="message-error">{{ error() }}</div>
+    }
+    @if (success()) {
+      <div class="message-success">{{ success() }}</div>
+    }
+
+    <!-- Encryption not configured: linking is impossible until this is fixed -->
+    @if (encryptionMissing()) {
+      <div class="banner banner-warn">
+        <strong>Credential encryption is not configured.</strong>
+        <p>
+          The server has no <code>BROKER_ENCRYPTION_KEY</code>, so it will refuse to store API
+          keys rather than saving them in plain text. Generate one and restart the backend:
+        </p>
+        <pre class="code-block">python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"</pre>
+      </div>
+    }
+
+    <!-- ================= Execution mode ================= -->
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">Execution Mode</h2>
+        @if (isRouting()) {
+          <span class="badge" [class.badge-live]="isLive()" [class.badge-paper]="!isLive()">
+            {{ isLive() ? 'LIVE — REAL MONEY' : 'PAPER' }}
+          </span>
+        } @else {
+          <span class="badge badge-sim">SIMULATED</span>
+        }
+      </div>
+
+      <p class="mode-explainer">
+        @if (!isLinked()) {
+          No brokerage is linked. Trades are simulated against a local ledger — nothing reaches a
+          real market.
+        } @else if (!isEnabled()) {
+          A brokerage is linked but routing is paused. Trades are being simulated locally.
+        } @else if (isLive()) {
+          Orders are sent to your live Alpaca account and use real money.
+        } @else {
+          Orders are sent to your Alpaca paper account. No real money is involved.
+        }
+      </p>
+
+      @if (isLinked()) {
+        <div class="detail-grid">
+          <div class="detail">
+            <span class="detail-label">Account</span>
+            <span class="detail-value">{{ status()?.broker_account_id || '—' }}</span>
+          </div>
+          <div class="detail">
+            <span class="detail-label">Linked</span>
+            <span class="detail-value">{{ formatDate(status()?.linked_at) }}</span>
+          </div>
+          <div class="detail">
+            <span class="detail-label">Last sync</span>
+            <span class="detail-value">{{ formatDate(status()?.last_sync_at) }}</span>
+          </div>
+          <div class="detail">
+            <span class="detail-label">Market</span>
+            <span class="detail-value">
+              @if (clock()) {
+                {{ clock()!.is_open ? 'Open' : 'Closed' }}
+              } @else {
+                —
+              }
+            </span>
+          </div>
+        </div>
+
+        @if (clock() && !clock()!.is_open) {
+          <p class="hint">
+            The market is closed. Orders placed now are accepted by Alpaca and stay pending until
+            the next open, then get reconciled with their real fill price.
+          </p>
+        }
+
+        <div class="form-actions actions-row">
+          <button class="btn btn-info" (click)="syncNow()" [disabled]="isSyncing() || !isEnabled()">
+            {{ isSyncing() ? 'Syncing...' : 'Sync from Alpaca' }}
+          </button>
+          <button class="btn btn-info" (click)="reconcileNow()" [disabled]="!isEnabled()">
+            Reconcile Orders
+          </button>
+          <button class="btn" [class.btn-primary]="!isEnabled()" [class.btn-danger]="isEnabled()"
+                  (click)="toggleRouting()">
+            {{ isEnabled() ? 'Pause Routing' : 'Resume Routing' }}
+          </button>
+        </div>
+      }
+    </div>
+
+    <!-- ================= Bot gate notice ================= -->
+    @if (isLive() && isRouting()) {
+      <div class="banner" [class.banner-warn]="!status()?.server_allows_live_bot"
+           [class.banner-danger]="status()?.server_allows_live_bot">
+        @if (status()?.server_allows_live_bot) {
+          <strong>The automated bot can place live orders.</strong>
+          <p>
+            Both live gates are open, so the AI bot is trading real money without further
+            confirmation. Set <code>ALLOW_LIVE_BOT_TRADING=false</code> to confine it to paper
+            while still trading live by hand.
+          </p>
+        } @else {
+          <strong>The automated bot is confined to paper.</strong>
+          <p>
+            You can place live orders manually, but the AI bot cannot
+            (<code>ALLOW_LIVE_BOT_TRADING</code> is off). This is the recommended setting until the
+            model's behaviour has been validated on paper.
+          </p>
+        }
+      </div>
+    }
+
+    <!-- ================= Account snapshot ================= -->
+    @if (isRouting()) {
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Account</h2>
+        </div>
+
+        @if (isLoadingAccount()) {
+          <p class="loading-message">Loading account...</p>
+        } @else if (account()) {
+          @if (account()!.trading_blocked || account()!.account_blocked) {
+            <div class="message-error">
+              Alpaca has blocked trading on this account. Orders will be rejected until this is
+              resolved in your Alpaca dashboard.
+            </div>
+          }
+
+          <div class="stat-grid">
+            <div class="stat">
+              <span class="stat-label">Cash</span>
+              <span class="stat-value">{{ money(account()!.cash) }}</span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">Buying Power</span>
+              <span class="stat-value">{{ money(account()!.buying_power) }}</span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">Equity</span>
+              <span class="stat-value">{{ money(account()!.equity) }}</span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">Portfolio Value</span>
+              <span class="stat-value">{{ money(account()!.portfolio_value) }}</span>
+            </div>
+          </div>
+
+          @if (account()!.pattern_day_trader) {
+            <p class="hint">
+              Flagged as a pattern day trader. Day trades used: {{ account()!.daytrade_count }}.
+            </p>
+          }
+        } @else {
+          <p class="loading-message">Account details unavailable.</p>
+        }
+      </div>
+
+      <!-- ================= Positions ================= -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Open Positions</h2>
+          @if (positions().length) {
+            <span class="detail-value"
+                  [class.positive]="totalUnrealized() >= 0"
+                  [class.negative]="totalUnrealized() < 0">
+              {{ money(totalUnrealized()) }}
+            </span>
+          }
+        </div>
+
+        @if (!positions().length) {
+          <p class="loading-message">No open positions.</p>
+        } @else {
+          <div class="table-wrapper">
+            <table class="positions-table">
+              <thead>
+                <tr>
+                  <th>Symbol</th>
+                  <th class="num">Qty</th>
+                  <th class="num">Avg Entry</th>
+                  <th class="num">Current</th>
+                  <th class="num">Market Value</th>
+                  <th class="num">Unrealized P/L</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (pos of positions(); track pos.symbol) {
+                  <tr>
+                    <td class="symbol">{{ pos.symbol }}</td>
+                    <td class="num">{{ pos.qty }}</td>
+                    <td class="num">{{ money(pos.avg_entry_price) }}</td>
+                    <td class="num">{{ money(pos.current_price) }}</td>
+                    <td class="num">{{ money(pos.market_value) }}</td>
+                    <td class="num"
+                        [class.positive]="pos.unrealized_pl >= 0"
+                        [class.negative]="pos.unrealized_pl < 0">
+                      {{ money(pos.unrealized_pl) }}
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <p class="hint">
+            These come straight from Alpaca. Your local positions are refreshed from this list on
+            every sync, so anything closed outside the app disappears here too.
+          </p>
+        }
+      </div>
+    }
+
+    <!-- ================= Link paper ================= -->
+    @if (!isLinked()) {
+      <div class="card">
+        <h2 class="card-title">Link a Paper Account</h2>
+        <p class="mode-explainer">
+          Generate paper keys from the Alpaca dashboard. They are verified before being saved and
+          stored encrypted — no screen in this app will ever show them again.
+        </p>
+
+        <form (submit)="linkPaper(); $event.preventDefault()">
+          <div class="form-stack">
+            <div class="form-group">
+              <label for="paperKey">API Key ID</label>
+              <input type="text" id="paperKey" class="input-field" name="paperKey"
+                     [(ngModel)]="paperApiKey" autocomplete="off" spellcheck="false"
+                     placeholder="PK..." [disabled]="encryptionMissing()" />
+            </div>
+            <div class="form-group">
+              <label for="paperSecret">Secret Key</label>
+              <input type="password" id="paperSecret" class="input-field" name="paperSecret"
+                     [(ngModel)]="paperSecretKey" autocomplete="new-password"
+                     [disabled]="encryptionMissing()" />
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary"
+                    [disabled]="!paperFormValid() || isSubmitting() || encryptionMissing()">
+              {{ isSubmitting() ? 'Verifying...' : 'Link Paper Account' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    }
+
+    <!-- ================= Live trading ================= -->
+    @if (isLinked() && !isLive()) {
+      <div class="card card-live">
+        <h2 class="card-title">Live Trading</h2>
+
+        @if (!canOfferLive()) {
+          <p class="mode-explainer">
+            Live trading is disabled on this server. Set <code>ALLOW_LIVE_TRADING=true</code> in
+            your environment and restart the backend to enable it.
+          </p>
+        } @else {
+          <p class="mode-explainer">
+            Switching to live requires your <strong>live</strong> Alpaca key pair. Alpaca issues
+            different credentials for paper and live, so this is not a switch you can flip — and
+            that is deliberate.
+          </p>
+
+          @if (!showLiveForm()) {
+            <div class="form-actions">
+              <button class="btn btn-danger" (click)="toggleLiveForm()">
+                Switch to Live Trading
+              </button>
+            </div>
+          } @else {
+            <div class="banner banner-danger">
+              <strong>This moves real money.</strong>
+              <p>
+                Once linked, every order — including any placed automatically by the AI bot, if the
+                bot gate is also open — executes against your real Alpaca account. Consider running
+                on paper until you are satisfied with the strategy's results.
+              </p>
+            </div>
+
+            <form (submit)="linkLive(); $event.preventDefault()">
+              <div class="form-stack">
+                <div class="form-group">
+                  <label for="liveKey">Live API Key ID</label>
+                  <input type="text" id="liveKey" class="input-field" name="liveKey"
+                         [(ngModel)]="liveApiKey" autocomplete="off" spellcheck="false" />
+                </div>
+                <div class="form-group">
+                  <label for="liveSecret">Live Secret Key</label>
+                  <input type="password" id="liveSecret" class="input-field" name="liveSecret"
+                         [(ngModel)]="liveSecretKey" autocomplete="new-password" />
+                </div>
+
+                <label class="ack-label">
+                  <input type="checkbox" class="checkbox" name="liveAck" [(ngModel)]="liveAcknowledged" />
+                  <span>I understand these keys will trade real money.</span>
+                </label>
+
+                <div class="form-group">
+                  <label for="liveConfirm">Type <code>TRADE REAL MONEY</code> to confirm</label>
+                  <input type="text" id="liveConfirm" class="input-field" name="liveConfirm"
+                         [(ngModel)]="liveConfirmText" autocomplete="off" spellcheck="false" />
+                </div>
+              </div>
+
+              <div class="form-actions actions-row">
+                <button type="button" class="btn btn-info" (click)="toggleLiveForm()">Cancel</button>
+                <button type="submit" class="btn btn-danger"
+                        [disabled]="!liveFormValid() || isSubmitting()">
+                  {{ isSubmitting() ? 'Verifying...' : 'Enable Live Trading' }}
+                </button>
+              </div>
+            </form>
+          }
+        }
+      </div>
+    }
+
+    <!-- ================= Danger zone ================= -->
+    @if (isLinked()) {
+      <div class="card">
+        <h2 class="card-title">Unlink</h2>
+        <p class="mode-explainer">
+          Removes your stored API keys. Your trade history stays, and trades fall back to
+          simulation.
+        </p>
+
+        @if (!showUnlinkConfirm()) {
+          <div class="form-actions">
+            <button class="btn btn-danger" (click)="confirmUnlink()">Unlink Brokerage</button>
+          </div>
+        } @else {
+          <div class="banner banner-warn">
+            <strong>Remove stored credentials?</strong>
+            <p>You will need to paste your API keys again to re-link.</p>
+          </div>
+          <div class="form-actions actions-row">
+            <button class="btn btn-info" (click)="cancelUnlink()">Cancel</button>
+            <button class="btn btn-danger" (click)="unlink()">Yes, Unlink</button>
+          </div>
+        }
+      </div>
+    }
+  }
+</div>
