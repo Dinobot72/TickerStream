@@ -2,7 +2,7 @@ name: TickerStream Tests
 on:
   push:
     branches:
-      - '**'  # Matches "api-overhaul", "test-branch", "feature/login", etc.
+      - 'main'  # Matches "api-overhaul", "test-branch", "feature/login", etc.
   pull_request:
     branches:
       - '**'
