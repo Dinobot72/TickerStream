@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 # Custon imports
 from app.core.config import ORIGINS
 from app.core.database import setup_database
-from app.routers import auth, portfolio, trading
+from app.routers import auth, portfolio, trading, broker
 from app.tasks.scheduler import run_trading_bot
 
 
@@ -52,6 +52,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(portfolio.router)
 app.include_router(trading.router)
+app.include_router(broker.router)
 
 
 @app.on_event("startup")

@@ -121,7 +121,64 @@ def setup_database():
         )
     ''')
 
+    # Broker Accounts Table
+    # One linked brokerage account per user. Credentials are stored encrypted
+    # (see app/core/crypto.py) — never plaintext.
+    #
+    #   mode              'paper' or 'live'. Linking always starts as 'paper';
+    #                     promoting to 'live' is a separate, explicit action.
+    #   is_enabled        User can pause broker routing without deleting keys.
+    #                     When 0, process_trade() falls back to simulation.
+    #   live_confirmed_at Timestamp of the explicit "yes, trade real money"
+    #                     acknowledgement. NULL means live was never confirmed
+    #                     and live orders are refused even if mode says 'live'.
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS broker_accounts (
+            user_id INTEGER PRIMARY KEY,
+            provider TEXT NOT NULL DEFAULT 'alpaca',
+            api_key_encrypted TEXT NOT NULL,
+            secret_key_encrypted TEXT NOT NULL,
+            mode TEXT NOT NULL DEFAULT 'paper' CHECK (mode IN ('paper', 'live')),
+            is_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+            broker_account_id TEXT,
+            linked_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            live_confirmed_at DATETIME,
+            last_sync_at DATETIME,
+            FOREIGN KEY (user_id) REFERENCES users (user_id)
+        )
+    ''')
+
     conn.commit()
+
+    # --- Migrations for existing databases ---
+
+    # `trades` predates broker integration: it assumed every row was an instantly
+    # filled simulated trade. Real orders are asynchronous and can be rejected or
+    # partially filled, so each trade now carries broker linkage and a lifecycle
+    # status. Existing rows are backfilled as FILLED simulated trades, which is
+    # what they actually were.
+    for column, ddl in (
+        ("broker_order_id", "ALTER TABLE trades ADD COLUMN broker_order_id TEXT"),
+        ("status", "ALTER TABLE trades ADD COLUMN status TEXT NOT NULL DEFAULT 'FILLED'"),
+        ("mode", "ALTER TABLE trades ADD COLUMN mode TEXT NOT NULL DEFAULT 'simulated'"),
+        ("filled_qty", "ALTER TABLE trades ADD COLUMN filled_qty INTEGER"),
+        ("filled_avg_price", "ALTER TABLE trades ADD COLUMN filled_avg_price REAL"),
+    ):
+        try:
+            cursor.execute(ddl)
+            conn.commit()
+        except sql.OperationalError:
+            pass  # Column already exists — safe to ignore
+
+    # Index for the reconciler, which repeatedly asks "which orders are still open?"
+    try:
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_trades_open_orders "
+            "ON trades (status, broker_order_id)"
+        )
+        conn.commit()
+    except sql.OperationalError:
+        pass
 
     # Migrate existing databases that were created before the timestamp column
     try:

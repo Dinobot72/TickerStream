@@ -71,6 +71,15 @@ services:
       # Replace with your actual public domain (no trailing slash).
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
 
+      # --- Broker (Alpaca) ---
+      # Encrypts stored API keys at rest. Without it the app refuses to store
+      # any brokerage credentials. Must be stable across restarts and deploys —
+      # changing it orphans every linked account.
+      - BROKER_ENCRYPTION_KEY=${BROKER_ENCRYPTION_KEY}
+      # Real-money gates. Both default to false if unset in .env.
+      - ALLOW_LIVE_TRADING=${ALLOW_LIVE_TRADING:-false}
+      - ALLOW_LIVE_BOT_TRADING=${ALLOW_LIVE_BOT_TRADING:-false}
+
       # --- Python path ---
       # Do NOT override PYTHONPATH here — let the Dockerfile's
       # ENV PYTHONPATH=/app stand so "backend.app.main" resolves.

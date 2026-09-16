@@ -10,6 +10,12 @@ from app.services.screener import run_market_scan
 from app.services.portfolio_manager import PortfolioManager
 from app.core.bot_state import get_active_bot_user_ids
 from app.services.ai_scorer import AIScorer
+from app.services.broker import (
+    BrokerError,
+    get_link,
+    reconcile_open_orders,
+    sync_portfolio_from_broker,
+)
 
 # How often the main loop runs (seconds). 300 = every 5 minutes.
 BOT_LOOP_INTERVAL = 300
@@ -84,6 +90,21 @@ async def run_trading_bot():
             # (bot_watchlist + personal watchlist).
             for user_id in active_user_ids:
                 print(f'working with user: {user_id}')
+
+                # For broker-linked users, refresh local state BEFORE generating a
+                # plan. The model's observation is built from `portfolios.balance`
+                # and `holdings` — if those are stale, it decides against numbers
+                # that are not true, and position sizing drifts from real buying
+                # power. Reconcile first so any order still working from a previous
+                # cycle is accounted for before its shares are spent again.
+                try:
+                    if get_link(user_id) is not None:
+                        reconcile_open_orders(user_id)
+                        sync_portfolio_from_broker(user_id)
+                except BrokerError as exc:
+                    # Never let one user's broker outage stop the loop for everyone.
+                    print(f"   ⚠️  Broker sync skipped for user {user_id}: {exc}")
+
                 if user_id not in portfolio_managers:
                     print(f"Creating new PortfolioManager for user {user_id}")
                     portfolio_managers[user_id] = PortfolioManager(
