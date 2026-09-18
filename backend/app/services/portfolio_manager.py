@@ -182,6 +182,7 @@ class PortfolioManager:
                 shares=shares,
                 entry_price=entry_price,
                 days_held=days_held,
+                initial_balance=balance
             )
  
             if "error" not in score:
@@ -270,11 +271,8 @@ class PortfolioManager:
         
         # 1. SELL SIGNALS (free up capital first)
         for opp in opportunities:
-            print('sell start')
             if opp['action'] == 'SELL' and opp['current_position'] > 0:
-                print('sell criteria met')
                 if opp['confidence'] >= min_sell_confidence:
-                    print('sell confidence met')
                     trades.append({
                         "ticker": opp['ticker'],
                         "action": "SELL",

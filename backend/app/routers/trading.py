@@ -289,6 +289,7 @@ def get_status(current_user: dict = Depends(get_current_user)):
 @router.post("/api/bot/start")
 def start_bot(current_user: dict = Depends(get_current_user)):
     set_bot_active(current_user["user_id"], True)
+    run_market_scan()  # Ensure the bot has a fresh scan before starting
     return {"status": "active", "message": "Bot started"}
 
 @router.post("/api/bot/stop")
