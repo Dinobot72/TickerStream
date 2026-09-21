@@ -78,22 +78,30 @@ No license file is currently included — add one before distributing this proje
 ## Setup Instructions
 
 #### Clone repository
+```
 git clone https://github.com/Dinobot72/TickerStream/
+```
 
 #### Install python
+```
 sudo apt update
 sudo apt install python3.14 python3.14-venv python3.14-dev -y
+```
 
 #### Install Requirements
+```
 cd ~/Tickerstream/backend
 pip install -r requirements.txt
 cd ~/Tickerstream/model
 pip install -r requirements.txt
+```
 
 #### Setup frontend
+```
 cd ~/Tickerstream/frontend
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
 source ~/.bashrc
 nvm install --lts
 npm install -g yarn
 yanr install
+```
